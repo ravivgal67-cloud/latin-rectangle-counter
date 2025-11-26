@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Latin Rectangle Counter</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-icon">🔢</div>
+            <h1>Latin Rectangle Counter</h1>
+            <p class="subtitle">Explore the fascinating world of normalized Latin rectangles</p>
+        </header>
+
+        <nav class="view-switcher">
+            <button id="home-view-btn" class="active">
+                <span class="btn-icon">🏠</span>
+                <span>Home</span>
+            </button>
+            <button id="calc-view-btn">
+                <span class="btn-icon">🧮</span>
+                <span>Calculate</span>
+            </button>
+            <button id="present-view-btn">
+                <span class="btn-icon">📊</span>
+                <span>Results</span>
+            </button>
+        </nav>
+
+        <!-- Home View -->
+        <div id="home-view" class="view active">
+            <section class="welcome-section">
+                <div class="welcome-card">
+                    <h2>Welcome! 👋</h2>
+                    <p class="intro-text">
+                        This tool helps you count <strong>normalized Latin rectangles</strong> and classify them 
+                        as positive (even parity) or negative (odd parity).
+                    </p>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="card-icon">📐</div>
+                        <h3>What is a Latin Rectangle?</h3>
+                        <p>
+                            A Latin rectangle is an <strong>r×n</strong> array where each row is a permutation 
+                            of {1, 2, ..., n} and no column contains duplicate values.
+                        </p>
+                        <div class="example-box">
+                            <strong>Example (2×3):</strong>
+                            <pre>1  2  3
+2  3  1</pre>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="card-icon">✨</div>
+                        <h3>Normalized Form</h3>
+                        <p>
+                            A <strong>normalized</strong> Latin rectangle has its first row as the identity 
+                            permutation: [1, 2, 3, ..., n].
+                        </p>
+                        <p class="note">
+                            This reduces the search space while maintaining all essential properties!
+                        </p>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="card-icon">⚖️</div>
+                        <h3>Positive vs Negative</h3>
+                        <p>
+                            Each rectangle has a <strong>sign</strong> based on the parity of its row permutations:
+                        </p>
+                        <ul>
+                            <li><strong>Positive (+1):</strong> Even number of inversions</li>
+                            <li><strong>Negative (-1):</strong> Odd number of inversions</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="card-icon">🎯</div>
+                        <h3>What This Tool Does</h3>
+                        <p>
+                            Given dimensions <strong>r</strong> (rows) and <strong>n</strong> (columns), 
+                            this tool:
+                        </p>
+                        <ul>
+                            <li>Generates all normalized Latin rectangles</li>
+                            <li>Counts positive and negative rectangles</li>
+                            <li>Caches results for fast retrieval</li>
+                            <li>Computes ranges efficiently</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="quick-start">
+                    <h3>🚀 Quick Start</h3>
+                    <div class="quick-start-steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Go to Calculate</strong>
+                                <p>Click the "Calculate" tab above</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Choose Input Mode</strong>
+                                <p>Single pair, all for n, or range</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Enter Dimensions</strong>
+                                <p>Specify r and n (where 2 ≤ r ≤ n)</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <strong>View Results</strong>
+                                <p>See counts and cached results</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="get-started-btn" class="cta-btn">Get Started →</button>
+                </div>
+
+                <div class="research-section">
+                    <h3>🔬 Mathematical Significance & Open Problems</h3>
+                    <div class="research-content">
+                        <div class="conjecture-box">
+                            <div class="conjecture-header">
+                                <span class="conjecture-icon">🎯</span>
+                                <h4>Open Conjecture on Latin Rectangles</h4>
+                            </div>
+                            <p class="conjecture-text">
+                                A major open problem in combinatorics concerns the <strong>difference between positive 
+                                and negative normalized Latin rectangles</strong>. It is conjectured that for r×n rectangles 
+                                where n is even:
+                            </p>
+                            <div class="formula-box">
+                                <strong>Positive Count ≠ Negative Count</strong>
+                                <span class="exception">(except for the known case r=3, n=4 where both equal 12)</span>
+                            </div>
+                            <p class="conjecture-note">
+                                This tool helps explore this conjecture by computing exact counts for various dimensions!
+                            </p>
+                        </div>
+
+                        <div class="connections-grid">
+                            <div class="connection-card">
+                                <h5>🔗 Latin Squares (r=n)</h5>
+                                <p>
+                                    When r=n, Latin rectangles become <strong>Latin squares</strong>. The Alon-Tarsi conjecture 
+                                    specifically concerns n×n Latin squares and states that for even n, the number of even 
+                                    Latin squares differs from the number of odd Latin squares.
+                                </p>
+                            </div>
+                            <div class="connection-card">
+                                <h5>🔗 Alon-Tarsi Number</h5>
+                                <p>
+                                    An even integer n is called an <strong>Alon-Tarsi number</strong> if every (n-1)-regular 
+                                    bipartite graph is n-edge-colorable. Equivalently, n is an Alon-Tarsi number if the 
+                                    number of even n×n Latin squares differs from the number of odd ones.
+                                </p>
+                            </div>
+                            <div class="connection-card">
+                                <h5>🔗 Computational Exploration</h5>
+                                <p>
+                                    While proven for some small cases, the general conjecture remains open. 
+                                    Computational tools like this help gather evidence, discover patterns, and test 
+                                    the conjecture for specific dimensions.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="papers-section">
+                            <h5>📚 Further Reading</h5>
+                            <ul class="papers-list">
+                                <li>
+                                    <a href="https://doi.org/10.1007/BF02579166" target="_blank" rel="noopener">
+                                        Alon, N., & Tarsi, M. (1992). "Colorings and orientations of graphs"
+                                    </a>
+                                    <span class="paper-note">Original paper introducing the Alon-Tarsi conjecture for Latin squares</span>
+                                </li>
+                                <li>
+                                    <a href="https://doi.org/10.1016/j.jcta.2009.03.018" target="_blank" rel="noopener">
+                                        Glynn, D. G. (2010). "The conjectures of Alon-Tarsi and Rota in dimension prime minus one"
+                                    </a>
+                                    <span class="paper-note">Survey connecting Alon-Tarsi to other combinatorial conjectures</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fun-facts">
+                    <h3>💡 Quick Facts</h3>
+                    <div class="facts-grid">
+                        <div class="fact">
+                            <strong>For r=2:</strong> The count equals the number of derangements of n elements!
+                        </div>
+                        <div class="fact">
+                            <strong>Known Exception:</strong> For (3,4), positive count equals negative count (both are 12).
+                        </div>
+                        <div class="fact">
+                            <strong>Complexity:</strong> The number of rectangles grows exponentially with n.
+                        </div>
+                        <div class="fact">
+                            <strong>Applications:</strong> Used in combinatorics, experimental design, and cryptography.
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Calculation View -->
+        <div id="calculation-view" class="view">
+            <div class="calc-container">
+                <!-- Input Card -->
+                <div class="calc-card">
+                    <h2>🧮 Calculate Rectangles</h2>
+                    <p class="help-text">Select a mode and enter dimensions to count Latin rectangles</p>
+                    
+                    <form id="count-form">
+                        <!-- Mode Selector Tabs -->
+                        <div class="mode-tabs">
+                            <button type="button" class="mode-tab active" data-mode="single">
+                                <span class="tab-icon">📐</span>
+                                <span class="tab-label">Single Pair</span>
+                            </button>
+                            <button type="button" class="mode-tab" data-mode="all-n">
+                                <span class="tab-icon">📊</span>
+                                <span class="tab-label">All for n</span>
+                            </button>
+                            <button type="button" class="mode-tab" data-mode="range">
+                                <span class="tab-icon">📈</span>
+                                <span class="tab-label">Range</span>
+                            </button>
+                        </div>
+
+                        <!-- Hidden radio buttons for form submission -->
+                        <input type="radio" id="mode-single" name="mode" value="single" checked style="display: none;">
+                        <input type="radio" id="mode-all-n" name="mode" value="all-n" style="display: none;">
+                        <input type="radio" id="mode-range" name="mode" value="range" style="display: none;">
+
+                        <!-- Input Panels -->
+                        <div class="input-panels">
+                            <!-- Single Mode Panel -->
+                            <div class="input-panel active" id="single-panel">
+                                <div class="panel-header">
+                                    <h3>Single (r, n) Pair</h3>
+                                    <p class="panel-desc">Count rectangles for one specific dimension</p>
+                                </div>
+                                <div class="input-row">
+                                    <div class="input-col">
+                                        <label for="input-r">Rows (r)</label>
+                                        <input type="number" id="input-r" name="r" min="2" value="2">
+                                        <span class="hint">2 ≤ r ≤ n</span>
+                                    </div>
+                                    <div class="input-col">
+                                        <label for="input-n">Columns (n)</label>
+                                        <input type="number" id="input-n" name="n" min="2" value="3">
+                                        <span class="hint">n ≥ 2</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- All-n Mode Panel -->
+                            <div class="input-panel" id="all-n-panel">
+                                <div class="panel-header">
+                                    <h3>All r for Given n</h3>
+                                    <p class="panel-desc">Count all r from 2 to n for a specific n</p>
+                                </div>
+                                <div class="input-row">
+                                    <div class="input-col">
+                                        <label for="input-n-only">Columns (n)</label>
+                                        <input type="number" id="input-n-only" name="n_only" min="2" value="4">
+                                        <span class="hint">Computes r=2, 3, ..., n</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Range Mode Panel -->
+                            <div class="input-panel" id="range-panel">
+                                <div class="panel-header">
+                                    <h3>Range of n Values</h3>
+                                    <p class="panel-desc">Count all combinations for n in a range</p>
+                                </div>
+                                <div class="input-row">
+                                    <div class="input-col">
+                                        <label for="input-n-start">Start n</label>
+                                        <input type="number" id="input-n-start" name="n_start" min="2" value="3">
+                                        <span class="hint">Starting value</span>
+                                    </div>
+                                    <div class="input-col">
+                                        <label for="input-n-end">End n</label>
+                                        <input type="number" id="input-n-end" name="n_end" min="2" value="5">
+                                        <span class="hint">Ending value</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submit-btn" class="primary-btn">
+                            <span>Calculate Results</span>
+                            <span class="btn-arrow">→</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Status Messages -->
+                <div id="progress-indicator" class="status-card" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Computing results...</p>
+                </div>
+
+                <div id="error-display" class="status-card error-card" style="display: none;">
+                    <div class="error-icon">⚠️</div>
+                    <p class="error-message"></p>
+                    <button id="dismiss-error" class="secondary-btn">Dismiss</button>
+                </div>
+
+                <!-- Results Card -->
+                <div id="results-section" class="results-card" style="display: none;">
+                    <div class="results-header">
+                        <h2>📊 Results</h2>
+                    </div>
+                    <div class="results-table-container">
+                        <table id="results-table">
+                            <thead>
+                                <tr>
+                                    <th>r</th>
+                                    <th>n</th>
+                                    <th>Positive</th>
+                                    <th>Negative</th>
+                                    <th>Difference</th>
+                                    <th>Source</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-tbody">
+                                <!-- Results will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results View -->
+        <div id="presentation-view" class="view">
+            <div class="results-view-container">
+                <!-- Header with Stats -->
+                <div class="results-view-header">
+                    <div class="header-content">
+                        <h2>📊 Cached Results</h2>
+                        <p class="subtitle-text">Browse and manage all computed Latin rectangle counts</p>
+                    </div>
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-results">0</div>
+                            <div class="stat-label">Total Results</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="dimension-range">-</div>
+                            <div class="stat-label">Dimension Range</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-results-state" class="empty-state" style="display: none;">
+                    <div class="empty-icon">📭</div>
+                    <h3>No Results Yet</h3>
+                    <p>Start by calculating some Latin rectangles in the Calculate tab!</p>
+                    <button id="goto-calc-btn" class="cta-btn">Go to Calculate →</button>
+                </div>
+
+                <!-- Results Table Card -->
+                <div id="results-table-card" class="results-table-card" style="display: none;">
+                    <!-- Toolbar -->
+                    <div class="table-toolbar">
+                        <div class="toolbar-info">
+                            <span class="info-text">Click column headers to sort • Type in filters to search</span>
+                        </div>
+                        <div class="toolbar-actions">
+                            <button id="export-csv-btn" class="action-btn" title="Export as CSV">
+                                <span>📥 CSV</span>
+                            </button>
+                            <button id="export-json-btn" class="action-btn" title="Export as JSON">
+                                <span>📥 JSON</span>
+                            </button>
+                            <button id="clear-filters-btn" class="icon-btn" title="Clear all filters">
+                                <span>✖️</span>
+                            </button>
+                            <button id="refresh-btn" class="icon-btn" title="Refresh results">
+                                <span>🔄</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="scrollable-table">
+                        <table id="presentation-table">
+                            <thead>
+                                <tr class="header-row">
+                                    <th class="sortable" data-column="r">
+                                        <div class="th-content">
+                                            <span class="th-label">r</span>
+                                            <span class="sort-indicator"></span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-column="n">
+                                        <div class="th-content">
+                                            <span class="th-label">n</span>
+                                            <span class="sort-indicator"></span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-column="positive">
+                                        <div class="th-content">
+                                            <span class="th-label">Positive</span>
+                                            <span class="sort-indicator"></span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-column="negative">
+                                        <div class="th-content">
+                                            <span class="th-label">Negative</span>
+                                            <span class="sort-indicator"></span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-column="difference">
+                                        <div class="th-content">
+                                            <span class="th-label">Difference</span>
+                                            <span class="sort-indicator"></span>
+                                        </div>
+                                    </th>
+                                    <th class="actions-col">Actions</th>
+                                </tr>
+                                <tr class="filter-row">
+                                    <th><input type="text" class="filter-input" data-column="r" placeholder="Filter r..."></th>
+                                    <th><input type="text" class="filter-input" data-column="n" placeholder="Filter n..."></th>
+                                    <th><input type="text" class="filter-input" data-column="positive" placeholder="Filter..."></th>
+                                    <th><input type="text" class="filter-input" data-column="negative" placeholder="Filter..."></th>
+                                    <th><input type="text" class="filter-input" data-column="difference" placeholder="Filter..."></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="presentation-tbody">
+                                <!-- Results will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Info -->
+                    <div class="table-footer">
+                        <div class="showing-info">
+                            Showing <span id="showing-count">0</span> of <span id="total-count">0</span> results
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

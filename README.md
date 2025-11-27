@@ -62,5 +62,10 @@ See [COVERAGE.md](COVERAGE.md) for detailed coverage report.
 ## Running the Application
 
 ```bash
-python -m web.app
+python -m flask --app web.app run
+```
+
+Or alternatively:
+```bash
+flask --app web.app run
 ```

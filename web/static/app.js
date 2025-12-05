@@ -16,6 +16,10 @@ let emptyResultsState, resultsTableCard, presentationTbody;
 let filterInputs, refreshBtn, clearFiltersBtn, exportCsvBtn, exportJsonBtn;
 let currentSort = { column: 'n', direction: 'asc' };
 
+// Track active computation state
+let activeProgressInterval = null;
+let isComputing = false;
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     initializeElements();
@@ -178,6 +182,11 @@ function switchView(viewName) {
         calculationView.classList.add('active');
         calcViewBtn.classList.add('active');
         console.log('Switched to calculation view'); // Debug
+        
+        // If there's an active computation, ensure results section is visible
+        if (isComputing || (resultsTbody && resultsTbody.children.length > 0)) {
+            showResults();
+        }
     } else if (viewName === 'presentation') {
         presentationView.classList.add('active');
         presentViewBtn.classList.add('active');
@@ -230,8 +239,11 @@ async function handleFormSubmit(event) {
     
     console.log('About to make API call...'); // Debug
     
+    // Set computing flag
+    isComputing = true;
+    
     // Start polling for progress
-    const progressInterval = startProgressPolling();
+    activeProgressInterval = startProgressPolling();
     
     // Make API request
     try {
@@ -264,8 +276,10 @@ async function handleFormSubmit(event) {
         showError(`Network error: ${error.message}`);
         hideResults();
     } finally {
-        // Stop polling
-        stopProgressPolling(progressInterval);
+        // Stop polling and clear computing flag
+        stopProgressPolling(activeProgressInterval);
+        activeProgressInterval = null;
+        isComputing = false;
         console.log('Hiding progress...'); // Debug
         hideProgress();
     }
@@ -342,7 +356,14 @@ function buildRequestBody(mode) {
 function startProgressPolling() {
     console.log('Starting progress polling'); // Debug
     
-    const intervalId = setInterval(async () => {
+    // Clear any existing interval
+    if (activeProgressInterval) {
+        clearInterval(activeProgressInterval);
+    }
+    
+    isComputing = true;
+    
+    activeProgressInterval = setInterval(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/progress`);
             const data = await response.json();
@@ -359,7 +380,7 @@ function startProgressPolling() {
         }
     }, 1000); // Poll every second
     
-    return intervalId;
+    return activeProgressInterval;
 }
 
 /**
@@ -370,6 +391,11 @@ function stopProgressPolling(intervalId) {
         console.log('Stopping progress polling'); // Debug
         clearInterval(intervalId);
     }
+    if (activeProgressInterval) {
+        clearInterval(activeProgressInterval);
+        activeProgressInterval = null;
+    }
+    isComputing = false;
 }
 
 /**

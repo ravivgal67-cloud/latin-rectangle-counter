@@ -19,6 +19,8 @@ let currentSort = { column: 'n', direction: 'asc' };
 // Track active computation state
 let activeProgressInterval = null;
 let isComputing = false;
+let computationStartTime = null;
+let elapsedTimeInterval = null;
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -362,6 +364,7 @@ function startProgressPolling() {
     }
     
     isComputing = true;
+    computationStartTime = Date.now();
     
     activeProgressInterval = setInterval(async () => {
         try {
@@ -396,6 +399,22 @@ function stopProgressPolling(intervalId) {
         activeProgressInterval = null;
     }
     isComputing = false;
+    computationStartTime = null;
+}
+
+/**
+ * Format elapsed time as dd:hh:mm
+ */
+function formatElapsedTime() {
+    if (!computationStartTime) return '00:00:00';
+    
+    const elapsed = Date.now() - computationStartTime;
+    const totalMinutes = Math.floor(elapsed / 60000);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    
+    return `${String(days).padStart(2, '0')}:${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
 /**
@@ -442,14 +461,15 @@ function updateProgressInTable(progressData) {
             <td><span class="computed-badge">Computed</span></td>
         `;
     } else {
-        // Update with progress
+        // Update with progress including elapsed time
+        const elapsedTime = formatElapsedTime();
         targetRow.className = 'computing-row';
         targetRow.innerHTML = `
             <td>${r}</td>
             <td>${n}</td>
             <td colspan="4" style="text-align: center; color: var(--text-secondary);">
                 <span class="computing-indicator">
-                    Computing... (scanned: ${formatNumber(rectangles_scanned)}, 
+                    Computing... [${elapsedTime}] (scanned: ${formatNumber(rectangles_scanned)}, 
                     +${formatNumber(positive_count)}, 
                     -${formatNumber(negative_count)})
                 </span>

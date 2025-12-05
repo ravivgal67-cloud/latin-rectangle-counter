@@ -65,6 +65,15 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
             "error": str(error)
         }), 400
     
+    @app.errorhandler(404)
+    def not_found(error):
+        """Handle 404 Not Found errors silently."""
+        # Don't log 404s to reduce noise
+        return jsonify({
+            "status": "error",
+            "error": "Not found"
+        }), 404
+    
     @app.errorhandler(500)
     def internal_error(error):
         """Handle 500 Internal Server errors."""
@@ -77,8 +86,12 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
     @app.errorhandler(Exception)
     def handle_exception(error):
         """Handle all uncaught exceptions."""
-        app.logger.error(f"Unhandled exception: {error}")
-        app.logger.error(traceback.format_exc())
+        # Don't log 404 errors to reduce noise
+        from werkzeug.exceptions import NotFound
+        if not isinstance(error, NotFound):
+            app.logger.error(f"Unhandled exception: {error}")
+            app.logger.error(traceback.format_exc())
+        
         return jsonify({
             "status": "error",
             "error": "An unexpected error occurred",

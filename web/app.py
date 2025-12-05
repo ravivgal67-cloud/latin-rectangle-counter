@@ -74,6 +74,14 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
             "error": "Not found"
         }), 404
     
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        """Handle 405 Method Not Allowed errors."""
+        return jsonify({
+            "status": "error",
+            "error": "Method not allowed"
+        }), 405
+    
     @app.errorhandler(500)
     def internal_error(error):
         """Handle 500 Internal Server errors."""

@@ -458,6 +458,8 @@ function updateProgressInTable(progressData) {
             <td>${formatNumber(positive_count)}</td>
             <td>${formatNumber(negative_count)}</td>
             <td>${formatNumber(difference)}</td>
+            <td>—</td>
+            <td>—</td>
             <td><span class="computed-badge">Computed</span></td>
         `;
     } else {
@@ -467,7 +469,7 @@ function updateProgressInTable(progressData) {
         targetRow.innerHTML = `
             <td>${r}</td>
             <td>${n}</td>
-            <td colspan="4" style="text-align: center; color: var(--text-secondary);">
+            <td colspan="6" style="text-align: center; color: var(--text-secondary);">
                 <span class="computing-indicator">
                     Computing... [${elapsedTime}] (scanned: ${formatNumber(rectangles_scanned)}, 
                     +${formatNumber(positive_count)}, 
@@ -489,7 +491,7 @@ function displayResults(results) {
     
     if (!results || results.length === 0) {
         console.log('No results to display'); // Debug log
-        resultsTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No results to display</td></tr>';
+        resultsTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary);">No results to display</td></tr>';
         showResults();
         return;
     }
@@ -507,6 +509,16 @@ function displayResults(results) {
         const negativeCount = formatNumber(result.negative_count);
         const difference = formatNumber(result.difference);
         
+        // Format computation time
+        const computationTime = result.computation_time 
+            ? formatComputationTime(result.computation_time)
+            : '—';
+        
+        // Format computed_at date
+        const computedAt = result.computed_at 
+            ? formatDate(result.computed_at)
+            : '—';
+        
         // Determine source badge
         const sourceBadge = result.from_cache 
             ? '<span class="cached-badge">Cached</span>'
@@ -518,6 +530,8 @@ function displayResults(results) {
             <td>${positiveCount}</td>
             <td>${negativeCount}</td>
             <td>${difference}</td>
+            <td>${computationTime}</td>
+            <td>${computedAt}</td>
             <td>${sourceBadge}</td>
         `;
         
@@ -532,6 +546,61 @@ function displayResults(results) {
  */
 function formatNumber(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
+ * Format computation time in seconds to human-readable format
+ */
+function formatComputationTime(seconds) {
+    if (seconds === null || seconds === undefined) return '—';
+    
+    if (seconds < 0.001) {
+        return '<1ms';
+    } else if (seconds < 1) {
+        return `${(seconds * 1000).toFixed(0)}ms`;
+    } else if (seconds < 60) {
+        return `${seconds.toFixed(2)}s`;
+    } else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = (seconds % 60).toFixed(0);
+        return `${minutes}m ${secs}s`;
+    } else {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        return `${hours}h ${minutes}m`;
+    }
+}
+
+/**
+ * Format date string to readable format
+ */
+function formatDate(dateString) {
+    if (!dateString) return '—';
+    
+    try {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        // Show relative time for recent computations
+        if (diffMins < 1) {
+            return 'Just now';
+        } else if (diffMins < 60) {
+            return `${diffMins}m ago`;
+        } else if (diffHours < 24) {
+            return `${diffHours}h ago`;
+        } else if (diffDays < 7) {
+            return `${diffDays}d ago`;
+        } else {
+            // Show absolute date for older computations
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+        }
+    } catch (e) {
+        return dateString;
+    }
 }
 
 /**

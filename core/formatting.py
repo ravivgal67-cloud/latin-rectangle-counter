@@ -99,7 +99,7 @@ def format_for_web(results: List[CountResult]) -> Dict[str, Any]:
     Returns:
         Dictionary with 'results' key containing list of result dictionaries.
         Each result dictionary includes all fields: r, n, positive_count,
-        negative_count, difference, and from_cache.
+        negative_count, difference, from_cache, computation_time, and computed_at.
         
     Examples:
         >>> from core.counter import CountResult
@@ -123,7 +123,9 @@ def format_for_web(results: List[CountResult]) -> Dict[str, Any]:
                 "positive_count": result.positive_count,
                 "negative_count": result.negative_count,
                 "difference": result.difference,
-                "from_cache": result.from_cache
+                "from_cache": result.from_cache,
+                "computation_time": result.computation_time,
+                "computed_at": result.computed_at
             }
             for result in results
         ]

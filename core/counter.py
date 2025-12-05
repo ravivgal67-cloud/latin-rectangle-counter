@@ -23,6 +23,8 @@ class CountResult:
         negative_count: Count of rectangles with sign -1 (odd parity)
         difference: positive_count - negative_count
         from_cache: Whether this result was retrieved from cache
+        computation_time: Time taken to compute in seconds (None if from cache)
+        computed_at: Timestamp when computed (None if not yet cached)
     """
     r: int
     n: int
@@ -30,6 +32,8 @@ class CountResult:
     negative_count: int
     difference: int
     from_cache: bool = False
+    computation_time: Optional[float] = None
+    computed_at: Optional[str] = None
 
 
 def count_nlr_r2(n: int) -> CountResult:
@@ -282,6 +286,8 @@ def count_rectangles(r: int, n: int, cache_manager: Optional['CacheManager'] = N
         >>> result.n
         4
     """
+    import time
+    
     # Initialize progress tracker with cache manager if needed
     if progress_tracker and enable_progress_db and cache_manager:
         progress_tracker.cache_manager = cache_manager
@@ -297,6 +303,9 @@ def count_rectangles(r: int, n: int, cache_manager: Optional['CacheManager'] = N
     if progress_tracker:
         progress_tracker.start_dimension(r, n)
     
+    # Start timing
+    start_time = time.time()
+    
     # Compute the result
     if r == 2:
         result = count_nlr_r2(n)
@@ -305,6 +314,10 @@ def count_rectangles(r: int, n: int, cache_manager: Optional['CacheManager'] = N
             progress_tracker.complete_dimension()
     else:
         result = count_nlr_general(r, n, progress_tracker)
+    
+    # Calculate computation time
+    computation_time = time.time() - start_time
+    result.computation_time = computation_time
     
     # Store in cache if cache_manager is provided
     if cache_manager is not None:

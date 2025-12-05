@@ -75,10 +75,21 @@ class CacheManager:
                 positive_count INTEGER NOT NULL,
                 negative_count INTEGER NOT NULL,
                 difference INTEGER NOT NULL,
+                computation_time REAL,
                 computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (r, n)
             )
         """)
+        
+        # Add computation_time column if it doesn't exist (for existing databases)
+        try:
+            cursor.execute("""
+                ALTER TABLE results ADD COLUMN computation_time REAL
+            """)
+            conn.commit()
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
         
         # Create indexes for efficient queries
         cursor.execute("""
@@ -126,7 +137,7 @@ class CacheManager:
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT r, n, positive_count, negative_count, difference
+            SELECT r, n, positive_count, negative_count, difference, computation_time, computed_at
             FROM results
             WHERE r = ? AND n = ?
         """, (r, n))
@@ -142,7 +153,9 @@ class CacheManager:
             positive_count=row['positive_count'],
             negative_count=row['negative_count'],
             difference=row['difference'],
-            from_cache=True
+            from_cache=True,
+            computation_time=row['computation_time'],
+            computed_at=row['computed_at']
         )
     
     def put(self, result: CountResult) -> None:
@@ -166,9 +179,9 @@ class CacheManager:
         cursor = conn.cursor()
         
         cursor.execute("""
-            INSERT OR REPLACE INTO results (r, n, positive_count, negative_count, difference)
-            VALUES (?, ?, ?, ?, ?)
-        """, (result.r, result.n, result.positive_count, result.negative_count, result.difference))
+            INSERT OR REPLACE INTO results (r, n, positive_count, negative_count, difference, computation_time)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (result.r, result.n, result.positive_count, result.negative_count, result.difference, result.computation_time))
         
         conn.commit()
     
@@ -224,7 +237,7 @@ class CacheManager:
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT r, n, positive_count, negative_count, difference
+            SELECT r, n, positive_count, negative_count, difference, computation_time, computed_at
             FROM results
             WHERE r >= ? AND r <= ? AND n >= ? AND n <= ?
             ORDER BY n, r
@@ -238,7 +251,9 @@ class CacheManager:
                 positive_count=row['positive_count'],
                 negative_count=row['negative_count'],
                 difference=row['difference'],
-                from_cache=True
+                from_cache=True,
+                computation_time=row['computation_time'],
+                computed_at=row['computed_at']
             ))
         
         return results

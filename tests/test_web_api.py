@@ -170,7 +170,7 @@ class TestErrorHandlers:
     """Tests for error handlers."""
     
     def test_404_not_found(self):
-        """Test 404 error for non-existent endpoint (caught by exception handler)."""
+        """Test 404 error for non-existent endpoint."""
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.db') as tmp:
             db_path = tmp.name
         
@@ -180,8 +180,8 @@ class TestErrorHandlers:
             client = app.test_client()
             
             response = client.get('/api/nonexistent')
-            # Flask's exception handler catches 404 and returns 500
-            assert response.status_code == 500
+            # 404 handler returns 404 status
+            assert response.status_code == 404
             data = response.get_json()
             assert data['status'] == 'error'
             
@@ -239,7 +239,7 @@ class TestFrontendRoutes:
                 os.unlink(db_path)
     
     def test_static_route(self):
-        """Test that static file route is accessible."""
+        """Test that static file route returns 404 for non-existent files."""
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.db') as tmp:
             db_path = tmp.name
         
@@ -248,11 +248,11 @@ class TestFrontendRoutes:
             app = create_app(cache)
             client = app.test_client()
             
-            # Try to access a static file (will 500 if doesn't exist due to exception handler)
+            # Try to access a non-existent static file
             response = client.get('/static/test.css')
             
-            # Exception handler catches 404 and returns 500
-            assert response.status_code == 500
+            # 404 handler returns 404 status
+            assert response.status_code == 404
             
             cache.close()
         finally:

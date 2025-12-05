@@ -374,8 +374,15 @@ def count_for_n(n: int, cache_manager: Optional['CacheManager'] = None, progress
     for r in range(2, n + 1):
         # Special case: use optimization for (n-1, n) when applicable
         if r == n - 1 and use_optimization:
+            import time
             # Compute both (n-1, n) and (n, n) together
+            start_time = time.time()
             result_n_minus_1, result_n = count_nlr_with_completion(n - 1, n, progress_tracker)
+            elapsed = time.time() - start_time
+            
+            # Set computation time for both results (they were computed together)
+            result_n_minus_1.computation_time = elapsed
+            result_n.computation_time = elapsed
             
             # Store both in cache
             if cache_manager:

@@ -75,7 +75,7 @@ class CacheManager:
                 positive_count INTEGER NOT NULL,
                 negative_count INTEGER NOT NULL,
                 difference INTEGER NOT NULL,
-                computation_time REAL,
+                computation_time REAL DEFAULT 0.0,
                 computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (r, n)
             )
@@ -84,11 +84,20 @@ class CacheManager:
         # Add computation_time column if it doesn't exist (for existing databases)
         try:
             cursor.execute("""
-                ALTER TABLE results ADD COLUMN computation_time REAL
+                ALTER TABLE results ADD COLUMN computation_time REAL DEFAULT 0.0
             """)
             conn.commit()
         except sqlite3.OperationalError:
             # Column already exists
+            pass
+        
+        # Update existing NULL values to 0.0
+        try:
+            cursor.execute("""
+                UPDATE results SET computation_time = 0.0 WHERE computation_time IS NULL
+            """)
+            conn.commit()
+        except sqlite3.OperationalError:
             pass
         
         # Create indexes for efficient queries

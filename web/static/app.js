@@ -458,8 +458,7 @@ function updateProgressInTable(progressData) {
             <td>${formatNumber(positive_count)}</td>
             <td>${formatNumber(negative_count)}</td>
             <td>${formatNumber(difference)}</td>
-            <td>—</td>
-            <td>—</td>
+            <td><span style="color: var(--text-secondary);">Computing...</span></td>
             <td><span class="computed-badge">Computed</span></td>
         `;
     } else {
@@ -469,7 +468,7 @@ function updateProgressInTable(progressData) {
         targetRow.innerHTML = `
             <td>${r}</td>
             <td>${n}</td>
-            <td colspan="6" style="text-align: center; color: var(--text-secondary);">
+            <td colspan="5" style="text-align: center; color: var(--text-secondary);">
                 <span class="computing-indicator">
                     Computing... [${elapsedTime}] (scanned: ${formatNumber(rectangles_scanned)}, 
                     +${formatNumber(positive_count)}, 
@@ -491,7 +490,7 @@ function displayResults(results) {
     
     if (!results || results.length === 0) {
         console.log('No results to display'); // Debug log
-        resultsTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary);">No results to display</td></tr>';
+        resultsTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No results to display</td></tr>';
         showResults();
         return;
     }
@@ -509,15 +508,10 @@ function displayResults(results) {
         const negativeCount = formatNumber(result.negative_count);
         const difference = formatNumber(result.difference);
         
-        // Format computation time
-        const computationTime = result.computation_time 
+        // Format computation time (handle null/undefined/0)
+        const computationTime = (result.computation_time !== null && result.computation_time !== undefined && result.computation_time > 0)
             ? formatComputationTime(result.computation_time)
-            : '—';
-        
-        // Format computed_at date
-        const computedAt = result.computed_at 
-            ? formatDate(result.computed_at)
-            : '—';
+            : '<span style="color: var(--text-secondary);">N/A</span>';
         
         // Determine source badge
         const sourceBadge = result.from_cache 
@@ -531,7 +525,6 @@ function displayResults(results) {
             <td>${negativeCount}</td>
             <td>${difference}</td>
             <td>${computationTime}</td>
-            <td>${computedAt}</td>
             <td>${sourceBadge}</td>
         `;
         
@@ -578,26 +571,12 @@ function formatDate(dateString) {
     if (!dateString) return '—';
     
     try {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-        
-        // Show relative time for recent computations
-        if (diffMins < 1) {
-            return 'Just now';
-        } else if (diffMins < 60) {
-            return `${diffMins}m ago`;
-        } else if (diffHours < 24) {
-            return `${diffHours}h ago`;
-        } else if (diffDays < 7) {
-            return `${diffDays}d ago`;
-        } else {
-            // Show absolute date for older computations
-            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-        }
+        // SQLite CURRENT_TIMESTAMP returns UTC time without timezone indicator
+        // Add 'Z' to indicate UTC, then JavaScript will convert to local time
+        const utcString = dateString.includes('Z') ? dateString : dateString + 'Z';
+        const date = new Date(utcString);
+        // Always show absolute date-time in 24-hour format (converted to local timezone)
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
     } catch (e) {
         return dateString;
     }
@@ -865,7 +844,7 @@ function displayAllResults(results) {
     resultsTableCard.style.display = 'block';
     
     if (!results || results.length === 0) {
-        presentationTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">No results to display</td></tr>';
+        presentationTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">No results to display</td></tr>';
         updateFooter(0, 0);
         return;
     }
@@ -975,7 +954,7 @@ function displayFilteredResults(results) {
     presentationTbody.innerHTML = '';
     
     if (!results || results.length === 0) {
-        presentationTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-secondary);">No results match your filters</td></tr>';
+        presentationTbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">No results match your filters</td></tr>';
         updateFooter(0, allCachedResults.length);
         return;
     }
@@ -989,17 +968,24 @@ function displayFilteredResults(results) {
         const negativeCount = formatNumber(result.negative_count);
         const difference = formatNumber(result.difference);
         
+        // Format computation time (handle null/undefined/0)
+        const computationTime = (result.computation_time !== null && result.computation_time !== undefined && result.computation_time > 0)
+            ? formatComputationTime(result.computation_time)
+            : '<span style="color: var(--text-secondary);">N/A</span>';
+        
+        // Format computed_at date (handle null/undefined)
+        const computedAt = result.computed_at 
+            ? formatDate(result.computed_at)
+            : '<span style="color: var(--text-secondary);">N/A</span>';
+        
         row.innerHTML = `
             <td><strong>${result.r}</strong></td>
             <td><strong>${result.n}</strong></td>
             <td>${positiveCount}</td>
             <td>${negativeCount}</td>
             <td>${difference}</td>
-            <td class="actions-col">
-                <button class="recompute-btn" onclick="recomputeResult(${result.r}, ${result.n})">
-                    🔄 Recompute
-                </button>
-            </td>
+            <td>${computationTime}</td>
+            <td>${computedAt}</td>
         `;
         
         presentationTbody.appendChild(row);

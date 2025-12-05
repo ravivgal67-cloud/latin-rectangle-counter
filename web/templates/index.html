@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Latin Rectangle Counter</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=4">
 </head>
 <body>
     <div class="container">
@@ -547,7 +547,6 @@
                                     <th>Negative</th>
                                     <th>Difference</th>
                                     <th>Time</th>
-                                    <th>Computed At</th>
                                     <th>Source</th>
                                 </tr>
                             </thead>
@@ -647,7 +646,18 @@
                                             <span class="sort-indicator"></span>
                                         </div>
                                     </th>
-                                    <th class="actions-col">Actions</th>
+                                    <th class="sortable" data-column="time">
+                                        <div class="th-content">
+                                            <span class="th-label">Time</span>
+                                            <span class="sort-indicator"></span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-column="computed_at">
+                                        <div class="th-content">
+                                            <span class="th-label">Computed At</span>
+                                            <span class="sort-indicator"></span>
+                                        </div>
+                                    </th>
                                 </tr>
                                 <tr class="filter-row">
                                     <th><input type="text" class="filter-input" data-column="r" placeholder="Filter r..."></th>
@@ -655,7 +665,8 @@
                                     <th><input type="text" class="filter-input" data-column="positive" placeholder="Filter..."></th>
                                     <th><input type="text" class="filter-input" data-column="negative" placeholder="Filter..."></th>
                                     <th><input type="text" class="filter-input" data-column="difference" placeholder="Filter..."></th>
-                                    <th></th>
+                                    <th><input type="text" class="filter-input" data-column="time" placeholder="Filter..."></th>
+                                    <th><input type="text" class="filter-input" data-column="computed_at" placeholder="Filter..."></th>
                                 </tr>
                             </thead>
                             <tbody id="presentation-tbody">
@@ -675,6 +686,6 @@
         </div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=9"></script>
 </body>
 </html>

@@ -176,8 +176,10 @@ def generate_constrained_permutations(n: int, forbidden: List[Set[int]]) -> Iter
     """
     Generate all permutations of [1, 2, ..., n] that avoid forbidden values at each position.
     
-    Uses backtracking with early pruning to efficiently generate only valid permutations.
-    At position i, the value cannot be in forbidden[i].
+    Uses backtracking with constraint propagation for efficiency:
+    - Detects forced moves (positions with only one available value)
+    - Early pruning when contradictions are detected
+    - Most-constrained-first heuristic for search order
     
     Args:
         n: The size of the permutation
@@ -196,40 +198,63 @@ def generate_constrained_permutations(n: int, forbidden: List[Set[int]]) -> Iter
         >>> list(generate_constrained_permutations(3, [{1}, {2}, set()]))
         [[2, 1, 3], [2, 3, 1], [3, 1, 2]]
     """
-    def backtrack(position: int, used: Set[int], current: List[int]) -> Iterator[List[int]]:
+    def backtrack_optimized(used: Set[int], current: List[int], remaining_positions: List[int]) -> Iterator[List[int]]:
         """
-        Recursive backtracking to build permutations.
+        Optimized backtracking with constraint propagation.
         
         Args:
-            position: Current position being filled (0-indexed)
-            used: Set of values already used in the permutation
-            current: Current partial permutation being built
+            used: Set of values already used
+            current: Current partial permutation (may have None for unfilled positions)
+            remaining_positions: List of positions still to be filled
         """
-        # Base case: we've filled all positions
-        if position == n:
+        # Base case: all positions filled
+        if not remaining_positions:
             yield current.copy()
             return
         
-        # Try each value from 1 to n
-        for value in range(1, n + 1):
-            # Skip if value is already used
-            if value in used:
-                continue
+        # Compute available values for each remaining position
+        available = {}
+        for pos in remaining_positions:
+            available[pos] = set(range(1, n + 1)) - used - forbidden[pos]
+            # Early pruning: if any position has no available values, this branch is dead
+            if not available[pos]:
+                return
+        
+        # Find forced moves (positions with exactly one available value)
+        forced = {pos: next(iter(available[pos])) for pos in remaining_positions 
+                  if len(available[pos]) == 1}
+        
+        if forced:
+            # Check for conflicts: two positions forced to same value
+            forced_values = list(forced.values())
+            if len(forced_values) != len(set(forced_values)):
+                return  # Conflict detected - prune this branch
             
-            # Skip if value is forbidden at this position
-            if value in forbidden[position]:
-                continue
+            # Apply forced moves
+            new_current = current.copy()
+            new_used = used.copy()
+            for pos, value in forced.items():
+                new_current[pos] = value
+                new_used.add(value)
             
-            # Use this value at this position
-            current.append(value)
-            used.add(value)
+            # Continue with remaining unfilled positions
+            new_remaining = [pos for pos in remaining_positions if pos not in forced]
+            yield from backtrack_optimized(new_used, new_current, new_remaining)
+        else:
+            # No forced moves - use most-constrained-first heuristic
+            # Choose position with fewest available values
+            most_constrained_pos = min(remaining_positions, key=lambda pos: len(available[pos]))
             
-            # Recursively fill remaining positions
-            yield from backtrack(position + 1, used, current)
-            
-            # Backtrack
-            current.pop()
-            used.remove(value)
+            # Try each available value for this position
+            for value in available[most_constrained_pos]:
+                new_current = current.copy()
+                new_current[most_constrained_pos] = value
+                new_used = used | {value}
+                new_remaining = [pos for pos in remaining_positions if pos != most_constrained_pos]
+                
+                yield from backtrack_optimized(new_used, new_current, new_remaining)
     
-    # Start backtracking from position 0
-    yield from backtrack(0, set(), [])
+    # Initialize with all positions unfilled
+    initial_current = [None] * n
+    initial_remaining = list(range(n))
+    yield from backtrack_optimized(set(), initial_current, initial_remaining)

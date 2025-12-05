@@ -145,6 +145,109 @@ def count_nlr_general(r: int, n: int, progress_tracker=None) -> CountResult:
     )
 
 
+def count_nlr_with_completion(r: int, n: int, progress_tracker=None) -> tuple[CountResult, CountResult]:
+    """
+    Count (r, n) and simultaneously compute (r+1, n) by completing each rectangle.
+    
+    This optimization works when r = n-1. Every (n-1)×n normalized Latin rectangle
+    can be uniquely completed to an n×n Latin square by adding the missing element
+    in each column as the last row.
+    
+    Args:
+        r: Number of rows (must equal n-1)
+        n: Number of columns
+        progress_tracker: Optional progress tracker
+        
+    Returns:
+        Tuple of (result_r, result_r_plus_1) where:
+        - result_r is the CountResult for (r, n)
+        - result_r_plus_1 is the CountResult for (r+1, n)
+        
+    Raises:
+        ValueError: If r != n-1
+    """
+    if r != n - 1:
+        raise ValueError(f"count_nlr_with_completion requires r = n-1, got r={r}, n={n}")
+    
+    # Counters for (r, n)
+    positive_r = 0
+    negative_r = 0
+    
+    # Counters for (r+1, n) = (n, n)
+    positive_r_plus_1 = 0
+    negative_r_plus_1 = 0
+    
+    # Notify progress tracker for (r, n) if provided
+    if progress_tracker:
+        progress_tracker.start_dimension(r, n)
+    
+    # Generate all (r, n) rectangles
+    for rectangle in generate_normalized_rectangles(r, n):
+        sign_r = rectangle.compute_sign()
+        
+        # Count for (r, n)
+        if sign_r == 1:
+            positive_r += 1
+        else:
+            negative_r += 1
+        
+        # Complete to (r+1, n) by finding missing element in each column
+        last_row = []
+        for col_idx in range(n):
+            # Find which element is missing in this column
+            column_values = {rectangle.data[row_idx][col_idx] for row_idx in range(r)}
+            missing = next(val for val in range(1, n + 1) if val not in column_values)
+            last_row.append(missing)
+        
+        # Compute sign of the completed (r+1, n) rectangle
+        # The sign changes based on the parity of the last row permutation
+        from core.permutation import permutation_sign
+        last_row_sign = permutation_sign(last_row)
+        sign_r_plus_1 = sign_r * last_row_sign
+        
+        # Count for (r+1, n)
+        if sign_r_plus_1 == 1:
+            positive_r_plus_1 += 1
+        else:
+            negative_r_plus_1 += 1
+        
+        # Update progress for the (r, n) computation
+        if progress_tracker:
+            progress_tracker.update(positive_delta=1 if sign_r == 1 else 0,
+                                   negative_delta=1 if sign_r == -1 else 0)
+    
+    # Mark (r, n) as complete
+    if progress_tracker:
+        progress_tracker.complete_dimension()
+    
+    # Now notify progress tracker for (r+1, n) - it's instantly complete since we already computed it
+    if progress_tracker:
+        progress_tracker.start_dimension(r + 1, n)
+        # Update with final counts
+        progress_tracker.update(positive_delta=positive_r_plus_1, negative_delta=negative_r_plus_1)
+        progress_tracker.complete_dimension()
+    
+    result_r = CountResult(
+        r=r,
+        n=n,
+        positive_count=positive_r,
+        negative_count=negative_r,
+        difference=positive_r - negative_r,
+        from_cache=False
+    )
+    
+    result_r_plus_1 = CountResult(
+        r=r + 1,
+        n=n,
+        positive_count=positive_r_plus_1,
+        negative_count=negative_r_plus_1,
+        difference=positive_r_plus_1 - negative_r_plus_1,
+        from_cache=False
+    )
+    
+    return result_r, result_r_plus_1
+
+
 def count_rectangles(r: int, n: int, cache_manager: Optional['CacheManager'] = None, progress_tracker=None, enable_progress_db: bool = False) -> CountResult:
     """
     Count positive and negative normalized Latin rectangles for given dimensions.
@@ -222,6 +325,11 @@ def count_for_n(n: int, cache_manager: Optional['CacheManager'] = None, progress
     If a cache_manager is provided, this function will retrieve cached results
     where available and compute only missing dimensions.
     
+    OPTIMIZATION: When computing (n-1, n), we simultaneously compute (n, n)
+    by completing each rectangle, which is much more efficient than generating
+    all (n, n) rectangles separately. This optimization is only used when both
+    (n-1, n) and (n, n) need to be computed (not cached).
+    
     Args:
         n: Number of columns (n >= 2)
         cache_manager: Optional CacheManager instance for caching results
@@ -239,9 +347,36 @@ def count_for_n(n: int, cache_manager: Optional['CacheManager'] = None, progress
         3
     """
     results = []
+    
+    # Check if both (n-1, n) and (n, n) are cached
+    n_minus_1_cached = cache_manager.get(n - 1, n) if cache_manager and n > 2 else None
+    n_n_cached = cache_manager.get(n, n) if cache_manager else None
+    
+    # Decide whether to use optimization
+    use_optimization = (n > 2 and 
+                       n_minus_1_cached is None and 
+                       n_n_cached is None)
+    
+    # Compute r from 2 to n
     for r in range(2, n + 1):
-        result = count_rectangles(r, n, cache_manager, progress_tracker, enable_progress_db)
-        results.append(result)
+        # Special case: use optimization for (n-1, n) when applicable
+        if r == n - 1 and use_optimization:
+            # Compute both (n-1, n) and (n, n) together
+            result_n_minus_1, result_n = count_nlr_with_completion(n - 1, n, progress_tracker)
+            
+            # Store both in cache
+            if cache_manager:
+                cache_manager.put(result_n_minus_1)
+                cache_manager.put(result_n)
+            
+            results.append(result_n_minus_1)
+            results.append(result_n)
+            break  # We've computed (n, n) already, so we're done
+        else:
+            # Normal computation
+            result = count_rectangles(r, n, cache_manager, progress_tracker, enable_progress_db)
+            results.append(result)
+    
     return results
 
 

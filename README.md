@@ -136,15 +136,25 @@ The constraint propagation optimization provides significant speedups:
 
 **Key insight**: Optimization is most effective when **r ≥ n/2** (constraint density ≥ 50%)
 
-See [OPTIMIZATION_RESULTS.md](OPTIMIZATION_RESULTS.md) for detailed analysis.
+See [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md) for detailed analysis.
 
 ## 📚 Documentation
 
-- [Design Document](.kiro/specs/latin-rectangle-counter/design.md) - Architecture and algorithms
-- [Requirements](.kiro/specs/latin-rectangle-counter/requirements.md) - Feature specifications
-- [Coverage Analysis](COVERAGE_ANALYSIS.md) - Detailed test coverage report
-- [Optimization Results](OPTIMIZATION_RESULTS.md) - Performance benchmarks
-- [Scripts README](scripts/README.md) - Helper scripts documentation
+### Core Documentation
+- **[README.md](README.md)** - This file, project overview and quick start
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contributor guidelines, setup, and code style
+
+### Technical Documentation
+- **[docs/OPTIMIZATION.md](docs/OPTIMIZATION.md)** - Constraint propagation optimization analysis and benchmarks
+- **[docs/COVERAGE.md](docs/COVERAGE.md)** - Test coverage report and gap analysis
+
+### Specifications
+- **[Design Document](.kiro/specs/latin-rectangle-counter/design.md)** - Architecture, algorithms, and correctness properties
+- **[Requirements](.kiro/specs/latin-rectangle-counter/requirements.md)** - Feature specifications and acceptance criteria
+- **[Tasks](.kiro/specs/latin-rectangle-counter/tasks.md)** - Implementation plan and task list
+
+### Helper Scripts
+- **[scripts/README.md](scripts/README.md)** - Documentation for all helper scripts
 
 ## 🛠️ Development
 

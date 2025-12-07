@@ -43,7 +43,18 @@ coverage.xml
 *.swp
 *.swo
 *~
+.kiro/cache/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Environment
+.env
+.env.local
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.orig

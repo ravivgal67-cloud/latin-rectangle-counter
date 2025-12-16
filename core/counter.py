@@ -429,3 +429,145 @@ def count_range(n_start: int, n_end: int, cache_manager: Optional['CacheManager'
     for n in range(n_start, n_end + 1):
         results.extend(count_for_n(n, cache_manager, progress_tracker, enable_progress_db))
     return results
+
+
+def count_rectangles_resumable(r: int, n: int, cache_manager: Optional['CacheManager'] = None, 
+                              progress_tracker=None, checkpoint_interval: int = 10000) -> CountResult:
+    """
+    Count normalized Latin rectangles with checkpoint-based resumption.
+    
+    This function can resume computation from a previously saved checkpoint,
+    making it suitable for long-running computations that might be interrupted.
+    
+    Args:
+        r: Number of rows (2 ≤ r ≤ n)
+        n: Number of columns (n ≥ 2)
+        cache_manager: Optional CacheManager for caching and checkpoints
+        progress_tracker: Optional ProgressTracker for progress updates
+        checkpoint_interval: Save checkpoint every N rectangles (default: 10000)
+        
+    Returns:
+        CountResult with positive/negative counts and difference
+        
+    Examples:
+        >>> # First run (gets interrupted)
+        >>> cache = CacheManager(":memory:")
+        >>> result = count_rectangles_resumable(5, 6, cache)  # Saves checkpoints
+        
+        >>> # Second run (resumes from checkpoint)
+        >>> result = count_rectangles_resumable(5, 6, cache)  # Resumes automatically
+    """
+    import time
+    from core.latin_rectangle import generate_normalized_rectangles_resumable
+    
+    # Check if result is already cached
+    if cache_manager is not None:
+        cached_result = cache_manager.get(r, n)
+        if cached_result is not None:
+            return cached_result
+    
+    # Try to load existing checkpoint
+    checkpoint = None
+    if cache_manager is not None:
+        checkpoint = cache_manager.load_checkpoint(r, n)
+    
+    if checkpoint:
+        # Resume from checkpoint
+        start_from = checkpoint['partial_rows']
+        positive_count = checkpoint['positive_count']
+        negative_count = checkpoint['negative_count']
+        rectangles_scanned = checkpoint['rectangles_scanned']
+        elapsed_time = checkpoint['elapsed_time']
+        
+        print(f"Resuming (r={r}, n={n}) from checkpoint:")
+        print(f"  - Completed rows: {len(start_from)}")
+        print(f"  - Rectangles scanned: {rectangles_scanned:,}")
+        print(f"  - Positive: {positive_count:,}, Negative: {negative_count:,}")
+        print(f"  - Elapsed time: {elapsed_time:.2f}s")
+    else:
+        # Start fresh
+        start_from = None
+        positive_count = negative_count = rectangles_scanned = 0
+        elapsed_time = 0.0
+        print(f"Starting fresh computation for (r={r}, n={n})")
+    
+    # Notify progress tracker
+    if progress_tracker:
+        progress_tracker.start_dimension(r, n)
+        # If resuming, update with current counts
+        if checkpoint:
+            progress_tracker.positive_count = positive_count
+            progress_tracker.negative_count = negative_count
+            progress_tracker.rectangles_scanned = rectangles_scanned
+    
+    # Start timing (for this session)
+    session_start_time = time.time()
+    count_since_checkpoint = 0
+    
+    # Generate rectangles (resuming from checkpoint if available)
+    for rect in generate_normalized_rectangles_resumable(r, n, start_from):
+        # Count rectangle
+        sign = rect.compute_sign()
+        if sign > 0:
+            positive_count += 1
+        else:
+            negative_count += 1
+        
+        rectangles_scanned += 1
+        count_since_checkpoint += 1
+        
+        # Update progress tracker
+        if progress_tracker:
+            progress_tracker.update(
+                positive_delta=1 if sign > 0 else 0,
+                negative_delta=1 if sign < 0 else 0,
+                scanned_delta=1
+            )
+        
+        # Save checkpoint periodically
+        if cache_manager and count_since_checkpoint >= checkpoint_interval:
+            current_elapsed = elapsed_time + (time.time() - session_start_time)
+            
+            # Save checkpoint with current partial rectangle (all rows except the last one)
+            # This represents the state where we've completed processing all rectangles
+            # that start with rect.data[:-1] and are now working on the next set
+            partial_rows = rect.data[:-1] if len(rect.data) > 1 else []
+            
+            cache_manager.save_checkpoint(
+                r, n, partial_rows, positive_count, negative_count, 
+                rectangles_scanned, current_elapsed
+            )
+            
+            count_since_checkpoint = 0
+            print(f"Checkpoint saved: {rectangles_scanned:,} rectangles, "
+                  f"{current_elapsed:.1f}s elapsed")
+    
+    # Calculate total computation time
+    session_time = time.time() - session_start_time
+    total_computation_time = elapsed_time + session_time
+    
+    # Mark as complete
+    if progress_tracker:
+        progress_tracker.complete_dimension()
+    
+    # Create result
+    result = CountResult(
+        r=r, n=n,
+        positive_count=positive_count,
+        negative_count=negative_count,
+        difference=positive_count - negative_count,
+        from_cache=False,
+        computation_time=total_computation_time
+    )
+    
+    # Store final result in cache and clean up checkpoint
+    if cache_manager is not None:
+        cache_manager.put(result)
+        cache_manager.delete_checkpoint(r, n)
+        print(f"Computation complete! Final result cached, checkpoint deleted.")
+    
+    print(f"Final result: positive={positive_count:,}, negative={negative_count:,}, "
+          f"difference={positive_count - negative_count:,}")
+    print(f"Total time: {total_computation_time:.2f}s")
+    
+    return result

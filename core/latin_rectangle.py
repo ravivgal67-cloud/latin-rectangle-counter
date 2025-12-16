@@ -120,9 +120,10 @@ class LatinRectangle:
 
 
 
-def generate_normalized_rectangles(r: int, n: int) -> Iterator[LatinRectangle]:
+def generate_normalized_rectangles_resumable(r: int, n: int, 
+                                           start_from: List[List[int]] = None) -> Iterator[LatinRectangle]:
     """
-    Generate all normalized Latin rectangles of dimension r×n.
+    Generate all normalized Latin rectangles of dimension r×n with resume capability.
     
     A normalized Latin rectangle has:
     - First row as the identity permutation [1, 2, 3, ..., n]
@@ -134,22 +135,23 @@ def generate_normalized_rectangles(r: int, n: int) -> Iterator[LatinRectangle]:
     Args:
         r: Number of rows (2 ≤ r ≤ n)
         n: Number of columns (n ≥ 2)
+        start_from: Partial rectangle to resume from (None = start fresh)
         
     Yields:
         LatinRectangle objects representing all valid normalized rectangles
         
     Examples:
         >>> # Generate all 2×2 normalized Latin rectangles
-        >>> rects = list(generate_normalized_rectangles(2, 2))
+        >>> rects = list(generate_normalized_rectangles_resumable(2, 2))
         >>> len(rects)
         1
         >>> rects[0].data
         [[1, 2], [2, 1]]
         
-        >>> # Generate all 2×3 normalized Latin rectangles
-        >>> rects = list(generate_normalized_rectangles(2, 3))
-        >>> len(rects)
-        2
+        >>> # Resume from partial rectangle
+        >>> partial = [[1, 2, 3], [2, 3, 1]]
+        >>> rects = list(generate_normalized_rectangles_resumable(3, 3, partial))
+        >>> # Will generate rectangles starting from the partial state
     """
     def backtrack(rows: List[List[int]]) -> Iterator[LatinRectangle]:
         """
@@ -178,6 +180,269 @@ def generate_normalized_rectangles(r: int, n: int) -> Iterator[LatinRectangle]:
             yield from backtrack(rows)
             rows.pop()
     
+    # Start from checkpoint or fresh
+    if start_from is None:
+        # Start with identity first row
+        start_rows = [list(range(1, n + 1))]
+    else:
+        # Resume from checkpoint
+        start_rows = [row.copy() for row in start_from]
+    
+    yield from backtrack(start_rows)
+
+
+def generate_normalized_rectangles(r: int, n: int) -> Iterator[LatinRectangle]:
+    """
+    Generate all normalized Latin rectangles of dimension r×n.
+    
+    A normalized Latin rectangle has:
+    - First row as the identity permutation [1, 2, 3, ..., n]
+    - Each subsequent row is a valid permutation with no column conflicts
+    
+    This function uses counter-based iteration to provide deterministic ordering
+    and enable precise resumption for checkpointing.
+    
+    Args:
+        r: Number of rows (2 ≤ r ≤ n)
+        n: Number of columns (n ≥ 2)
+        
+    Yields:
+        LatinRectangle objects in deterministic lexicographic order
+        
+    Examples:
+        >>> # Generate all 2×2 normalized Latin rectangles
+        >>> rects = list(generate_normalized_rectangles(2, 2))
+        >>> len(rects)
+        1
+        >>> rects[0].data
+        [[1, 2], [2, 1]]
+        
+        >>> # Generate all 2×3 normalized Latin rectangles
+        >>> rects = list(generate_normalized_rectangles(2, 3))
+        >>> len(rects)
+        2
+    """
+    # Use the counter-based implementation for deterministic ordering
+    yield from generate_normalized_rectangles_counter_based(r, n)
+
+
+def generate_normalized_rectangles_counter_based(r: int, n: int, start_counters: List[int] = None) -> Iterator[LatinRectangle]:
+    """
+    Generate all normalized Latin rectangles using counter-based iteration.
+    
+    This implementation uses explicit counters for each row level, providing
+    deterministic ordering and enabling precise resumption for checkpointing.
+    
+    Args:
+        r: Number of rows (2 ≤ r ≤ n)
+        n: Number of columns (n ≥ 2)
+        start_counters: List of counters for each row level (None = start from beginning)
+        
+    Yields:
+        LatinRectangle objects in deterministic lexicographic order
+        
+    Examples:
+        >>> # Generate all rectangles from beginning
+        >>> rects = list(generate_normalized_rectangles_counter_based(2, 3))
+        >>> len(rects)
+        2
+        
+        >>> # Resume from specific position
+        >>> rects = list(generate_normalized_rectangles_counter_based(2, 3, [0, 1]))
+        >>> # Starts from second permutation of row 2
+    """
+    
+    if start_counters is None:
+        start_counters = [0] * r
+    
+    # Ensure we have enough counters
+    counters = start_counters + [0] * (r - len(start_counters))
+    
+    def get_valid_permutations(partial_rows: List[List[int]]) -> List[List[int]]:
+        """Get all valid permutations for the next row, sorted for deterministic order."""
+        # Build forbidden set for each position based on existing rows
+        forbidden = [set() for _ in range(n)]
+        for row in partial_rows:
+            for col_idx, value in enumerate(row):
+                forbidden[col_idx].add(value)
+        
+        # Generate and sort all valid permutations
+        valid_perms = list(generate_constrained_permutations(n, forbidden))
+        return sorted(valid_perms)  # Lexicographic order for determinism
+    
+    def generate_from_counters(partial_rows: List[List[int]], level: int, current_counters: List[int]) -> Iterator[LatinRectangle]:
+        """Generate rectangles starting from specified counter positions."""
+        
+        if level == r:
+            # Base case: complete rectangle
+            yield LatinRectangle(r, n, [row.copy() for row in partial_rows])
+            return
+        
+        # Get valid permutations for this level
+        valid_perms = get_valid_permutations(partial_rows)
+        
+        if not valid_perms:
+            # No valid permutations possible - dead end
+            return
+        
+        # Start from the specified counter for this level
+        start_idx = current_counters[level] if level < len(current_counters) else 0
+        
+        # Ensure start_idx is valid
+        if start_idx >= len(valid_perms):
+            return  # Counter is beyond available permutations
+        
+        for i, perm in enumerate(valid_perms[start_idx:], start_idx):
+            partial_rows.append(perm)
+            
+            # For the first iteration at this level, use existing counters for deeper levels
+            # For subsequent iterations, reset deeper level counters to 0
+            if i == start_idx:
+                # First iteration - use existing deeper counters
+                next_counters = current_counters.copy()
+            else:
+                # Subsequent iterations - reset deeper counters
+                next_counters = current_counters[:level+1] + [0] * (r - level - 1)
+                next_counters[level] = i
+            
+            yield from generate_from_counters(partial_rows, level + 1, next_counters)
+            partial_rows.pop()
+    
     # Start with identity first row
     first_row = list(range(1, n + 1))
-    yield from backtrack([first_row])
+    yield from generate_from_counters([first_row], 1, counters)
+
+
+class CounterBasedRectangleIterator:
+    """
+    Iterator class for generating rectangles with explicit counter state.
+    
+    This class maintains internal counters that can be saved/restored for
+    precise checkpointing and resumption.
+    
+    Note: This iterator is optimized for checkpointing, not raw performance.
+    For best performance, use generate_normalized_rectangles_counter_based().
+    """
+    
+    def __init__(self, r: int, n: int, start_counters: List[int] = None):
+        self.r = r
+        self.n = n
+        self.counters = start_counters[:] if start_counters else [0] * r
+        self.finished = False
+        self.rectangles_generated = 0
+        
+        # Ensure we have enough counters
+        while len(self.counters) < r:
+            self.counters.append(0)
+        
+        # Cache for performance optimization
+        self._permutation_cache = {}  # Cache valid permutations by partial state
+    
+    def get_state(self) -> dict:
+        """Get current iterator state for checkpointing."""
+        return {
+            'counters': self.counters.copy(),
+            'rectangles_generated': self.rectangles_generated,
+            'finished': self.finished
+        }
+    
+    def set_state(self, state: dict):
+        """Restore iterator state from checkpoint."""
+        self.counters = state['counters'].copy()
+        self.rectangles_generated = state['rectangles_generated']
+        self.finished = state['finished']
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self) -> LatinRectangle:
+        """Generate next rectangle and advance counters."""
+        if self.finished:
+            raise StopIteration
+        
+        # Build rectangle from current counter state
+        try:
+            rectangle = self._build_rectangle_from_counters()
+            self.rectangles_generated += 1
+            self._advance_counters()
+            return rectangle
+        except (IndexError, ValueError):
+            # No more valid rectangles
+            self.finished = True
+            raise StopIteration
+    
+    def _build_rectangle_from_counters(self) -> LatinRectangle:
+        """Build a rectangle based on current counter values."""
+        rows = [list(range(1, self.n + 1))]  # Start with identity first row
+        
+        for level in range(1, self.r):
+            # Get valid permutations for this level
+            forbidden = [set() for _ in range(self.n)]
+            for row in rows:
+                for col_idx, value in enumerate(row):
+                    forbidden[col_idx].add(value)
+            
+            valid_perms = sorted(list(generate_constrained_permutations(self.n, forbidden)))
+            
+            if not valid_perms:
+                raise ValueError(f"No valid permutations at level {level}")
+            
+            counter_val = self.counters[level]
+            if counter_val >= len(valid_perms):
+                raise IndexError(f"Counter {counter_val} exceeds available permutations {len(valid_perms)} at level {level}")
+            
+            rows.append(valid_perms[counter_val])
+        
+        return LatinRectangle(self.r, self.n, rows)
+    
+    def _advance_counters(self):
+        """Advance counters to next rectangle position."""
+        # Start from the last level and increment with carry
+        level = self.r - 1
+        
+        while level >= 1:  # Don't modify level 0 (identity row)
+            self.counters[level] += 1
+            
+            # Check if we need to carry to previous level
+            if self._is_counter_valid(level):
+                # Counter is valid, we're done
+                # Reset all deeper level counters to 0
+                for deeper_level in range(level + 1, self.r):
+                    self.counters[deeper_level] = 0
+                return
+            else:
+                # Counter exceeded limit, carry to previous level
+                self.counters[level] = 0
+                level -= 1
+        
+        # If we get here, we've exhausted all possibilities
+        self.finished = True
+    
+    def _is_counter_valid(self, level: int) -> bool:
+        """Check if counter at given level is valid for current state."""
+        try:
+            # Build partial rectangle up to this level
+            rows = [list(range(1, self.n + 1))]  # Identity first row
+            
+            for l in range(1, level):
+                forbidden = [set() for _ in range(self.n)]
+                for row in rows:
+                    for col_idx, value in enumerate(row):
+                        forbidden[col_idx].add(value)
+                
+                valid_perms = sorted(list(generate_constrained_permutations(self.n, forbidden)))
+                if self.counters[l] >= len(valid_perms):
+                    return False
+                rows.append(valid_perms[self.counters[l]])
+            
+            # Check if current level counter is valid
+            forbidden = [set() for _ in range(self.n)]
+            for row in rows:
+                for col_idx, value in enumerate(row):
+                    forbidden[col_idx].add(value)
+            
+            valid_perms = sorted(list(generate_constrained_permutations(self.n, forbidden)))
+            return self.counters[level] < len(valid_perms)
+            
+        except (IndexError, ValueError):
+            return False

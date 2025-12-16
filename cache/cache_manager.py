@@ -123,6 +123,21 @@ class CacheManager:
             )
         """)
         
+        # Create checkpoints table for resumable computations
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS checkpoints (
+                r INTEGER NOT NULL,
+                n INTEGER NOT NULL,
+                partial_rows TEXT NOT NULL,
+                positive_count INTEGER NOT NULL,
+                negative_count INTEGER NOT NULL,
+                rectangles_scanned INTEGER NOT NULL,
+                elapsed_time REAL NOT NULL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (r, n)
+            )
+        """)
+        
         conn.commit()
     
     def get(self, r: int, n: int) -> Optional[CountResult]:
@@ -327,6 +342,111 @@ class CacheManager:
         cursor.execute("DELETE FROM progress")
         conn.commit()
     
+    def save_checkpoint(self, r: int, n: int, partial_rows: List[List[int]], 
+                       positive_count: int, negative_count: int, 
+                       rectangles_scanned: int, elapsed_time: float):
+        """
+        Save a computation checkpoint.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            partial_rows: List of completed rows so far
+            positive_count: Count of positive rectangles found
+            negative_count: Count of negative rectangles found
+            rectangles_scanned: Total rectangles scanned
+            elapsed_time: Time spent so far in seconds
+        """
+        import json
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        partial_rows_json = json.dumps(partial_rows)
+        
+        cursor.execute("""
+            INSERT OR REPLACE INTO checkpoints 
+            (r, n, partial_rows, positive_count, negative_count, 
+             rectangles_scanned, elapsed_time, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (r, n, partial_rows_json, positive_count, negative_count, 
+              rectangles_scanned, elapsed_time))
+        
+        conn.commit()
+    
+    def load_checkpoint(self, r: int, n: int) -> Optional[dict]:
+        """
+        Load a computation checkpoint.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            
+        Returns:
+            Dictionary with checkpoint data or None if no checkpoint exists
+        """
+        import json
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT partial_rows, positive_count, negative_count, 
+                   rectangles_scanned, elapsed_time, created_at
+            FROM checkpoints
+            WHERE r = ? AND n = ?
+        """, (r, n))
+        
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        
+        return {
+            'partial_rows': json.loads(row['partial_rows']),
+            'positive_count': row['positive_count'],
+            'negative_count': row['negative_count'],
+            'rectangles_scanned': row['rectangles_scanned'],
+            'elapsed_time': row['elapsed_time'],
+            'created_at': row['created_at']
+        }
+    
+    def delete_checkpoint(self, r: int, n: int):
+        """
+        Delete a computation checkpoint.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            DELETE FROM checkpoints WHERE r = ? AND n = ?
+        """, (r, n))
+        
+        conn.commit()
+    
+    def checkpoint_exists(self, r: int, n: int) -> bool:
+        """
+        Check if a checkpoint exists for the given dimensions.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            
+        Returns:
+            True if checkpoint exists, False otherwise
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 1 FROM checkpoints WHERE r = ? AND n = ? LIMIT 1
+        """, (r, n))
+        
+        return cursor.fetchone() is not None
+
     def close(self):
         """Close the database connection."""
         if self._connection is not None:

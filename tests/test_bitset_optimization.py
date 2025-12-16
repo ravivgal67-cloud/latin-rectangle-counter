@@ -104,6 +104,74 @@ class TestBitsetConstraints:
         assert constraints.is_forbidden(1, 2)
         assert not constraints.is_forbidden(1, 1)
         assert constraints.available_count(2) == 3
+    
+    def test_batch_operations(self):
+        """Test batch constraint operations."""
+        constraints = BitsetConstraints(4)
+        
+        # Test batch add
+        updates = [(0, 1), (0, 3), (1, 2), (2, 4)]
+        constraints.add_forbidden_batch(updates)
+        
+        assert constraints.is_forbidden(0, 1)
+        assert constraints.is_forbidden(0, 3)
+        assert not constraints.is_forbidden(0, 2)
+        assert constraints.is_forbidden(1, 2)
+        assert constraints.is_forbidden(2, 4)
+        
+        # Test batch remove
+        remove_updates = [(0, 1), (1, 2)]
+        constraints.remove_forbidden_batch(remove_updates)
+        
+        assert not constraints.is_forbidden(0, 1)
+        assert constraints.is_forbidden(0, 3)  # Still forbidden
+        assert not constraints.is_forbidden(1, 2)
+        assert constraints.is_forbidden(2, 4)  # Still forbidden
+    
+    def test_row_operations(self):
+        """Test row-based constraint operations."""
+        constraints = BitsetConstraints(4)
+        
+        # Test add row constraints
+        row = [1, 3, 2, 4]
+        constraints.add_row_constraints(row)
+        
+        assert constraints.is_forbidden(0, 1)
+        assert constraints.is_forbidden(1, 3)
+        assert constraints.is_forbidden(2, 2)
+        assert constraints.is_forbidden(3, 4)
+        
+        # Test remove row constraints
+        constraints.remove_row_constraints(row)
+        
+        assert not constraints.is_forbidden(0, 1)
+        assert not constraints.is_forbidden(1, 3)
+        assert not constraints.is_forbidden(2, 2)
+        assert not constraints.is_forbidden(3, 4)
+    
+    def test_rows_operations(self):
+        """Test multiple rows constraint operations."""
+        constraints = BitsetConstraints(3)
+        
+        rows = [
+            [1, 2, 3],
+            [2, 3, 1]
+        ]
+        
+        constraints.add_rows_constraints(rows)
+        
+        # Check constraints from first row
+        assert constraints.is_forbidden(0, 1)
+        assert constraints.is_forbidden(1, 2)
+        assert constraints.is_forbidden(2, 3)
+        
+        # Check constraints from second row
+        assert constraints.is_forbidden(0, 2)
+        assert constraints.is_forbidden(1, 3)
+        assert constraints.is_forbidden(2, 1)
+        
+        # Position 0 should have both 1 and 2 forbidden
+        assert constraints.available_count(0) == 1  # Only 3 available
 
 
 class TestBitsetPermutationGeneration:

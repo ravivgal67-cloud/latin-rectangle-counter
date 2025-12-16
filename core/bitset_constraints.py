@@ -50,6 +50,84 @@ class BitsetConstraints:
         """
         self.forbidden[pos] &= ~(1 << (value - 1))
     
+    def add_forbidden_batch(self, updates: List[tuple]):
+        """
+        Add multiple forbidden values in a single batch operation.
+        
+        This is more efficient than multiple individual add_forbidden calls
+        as it reduces function call overhead and enables potential optimizations.
+        
+        Args:
+            updates: List of (pos, value) tuples to add as forbidden
+            
+        Examples:
+            >>> constraints = BitsetConstraints(4)
+            >>> constraints.add_forbidden_batch([(0, 1), (0, 3), (1, 2)])
+            >>> # Equivalent to:
+            >>> # constraints.add_forbidden(0, 1)
+            >>> # constraints.add_forbidden(0, 3) 
+            >>> # constraints.add_forbidden(1, 2)
+        """
+        for pos, value in updates:
+            self.forbidden[pos] |= (1 << (value - 1))
+    
+    def remove_forbidden_batch(self, updates: List[tuple]):
+        """
+        Remove multiple forbidden values in a single batch operation.
+        
+        Args:
+            updates: List of (pos, value) tuples to remove from forbidden sets
+        """
+        for pos, value in updates:
+            self.forbidden[pos] &= ~(1 << (value - 1))
+    
+    def add_row_constraints(self, row: List[int]):
+        """
+        Add constraints for an entire row in a single optimized operation.
+        
+        This is the most common constraint update pattern in Latin rectangle
+        generation, so it gets its own optimized method.
+        
+        Args:
+            row: List of values representing a row (1-indexed values)
+            
+        Examples:
+            >>> constraints = BitsetConstraints(4)
+            >>> constraints.add_row_constraints([1, 3, 2, 4])
+            >>> # Forbids value 1 at position 0, value 3 at position 1, etc.
+        """
+        for col_idx, value in enumerate(row):
+            self.forbidden[col_idx] |= (1 << (value - 1))
+    
+    def remove_row_constraints(self, row: List[int]):
+        """
+        Remove constraints for an entire row in a single optimized operation.
+        
+        Args:
+            row: List of values representing a row (1-indexed values)
+        """
+        for col_idx, value in enumerate(row):
+            self.forbidden[col_idx] &= ~(1 << (value - 1))
+    
+    def add_rows_constraints(self, rows: List[List[int]]):
+        """
+        Add constraints for multiple rows in a single batch operation.
+        
+        This is highly optimized for the common pattern of adding constraints
+        from all existing rows when building a new rectangle level.
+        
+        Args:
+            rows: List of rows, each row is a list of values (1-indexed)
+            
+        Examples:
+            >>> constraints = BitsetConstraints(3)
+            >>> rows = [[1, 2, 3], [2, 3, 1]]
+            >>> constraints.add_rows_constraints(rows)
+        """
+        for row in rows:
+            for col_idx, value in enumerate(row):
+                self.forbidden[col_idx] |= (1 << (value - 1))
+    
     def is_forbidden(self, pos: int, value: int) -> bool:
         """
         Check if value is forbidden at position.

@@ -311,8 +311,7 @@ def generate_normalized_rectangles_bitset_optimized(r: int, n: int, start_counte
             partial_rows.append(perm)
             
             # Update bitset constraints by adding values from this row
-            for col_idx, value in enumerate(perm):
-                constraints.add_forbidden(col_idx, value)
+            constraints.add_row_constraints(perm)
             
             # Prepare counters for next level
             if i == start_idx:
@@ -327,14 +326,12 @@ def generate_normalized_rectangles_bitset_optimized(r: int, n: int, start_counte
             
             # Backtrack: remove this row and its constraints
             partial_rows.pop()
-            for col_idx, value in enumerate(perm):
-                constraints.remove_forbidden(col_idx, value)
+            constraints.remove_row_constraints(perm)
     
     # Start with identity first row and initial bitset constraints
     first_row = list(range(1, n + 1))
     initial_constraints = BitsetConstraints(n)
-    for col_idx, value in enumerate(first_row):
-        initial_constraints.add_forbidden(col_idx, value)
+    initial_constraints.add_row_constraints(first_row)
     
     yield from generate_from_counters([first_row], 1, initial_constraints, counters)
 
@@ -521,9 +518,7 @@ class CounterBasedRectangleIterator:
         for level in range(1, self.r):
             # Build bitset constraints for this level
             constraints = BitsetConstraints(self.n)
-            for row in rows:
-                for col_idx, value in enumerate(row):
-                    constraints.add_forbidden(col_idx, value)
+            constraints.add_rows_constraints(rows)
             
             valid_perms = list(generate_constrained_permutations_bitset_optimized(self.n, constraints))
             
@@ -569,9 +564,7 @@ class CounterBasedRectangleIterator:
             
             for l in range(1, level):
                 constraints = BitsetConstraints(self.n)
-                for row in rows:
-                    for col_idx, value in enumerate(row):
-                        constraints.add_forbidden(col_idx, value)
+                constraints.add_rows_constraints(rows)
                 
                 valid_perms = list(generate_constrained_permutations_bitset_optimized(self.n, constraints))
                 if self.counters[l] >= len(valid_perms):
@@ -580,9 +573,7 @@ class CounterBasedRectangleIterator:
             
             # Check if current level counter is valid
             constraints = BitsetConstraints(self.n)
-            for row in rows:
-                for col_idx, value in enumerate(row):
-                    constraints.add_forbidden(col_idx, value)
+            constraints.add_rows_constraints(rows)
             
             valid_perms = list(generate_constrained_permutations_bitset_optimized(self.n, constraints))
             return self.counters[level] < len(valid_perms)

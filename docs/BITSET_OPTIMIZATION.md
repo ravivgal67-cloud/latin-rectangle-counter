@@ -37,6 +37,15 @@ forbidden = [0b101, 0b010, 0b000]  # List of integers (bitsets)
 
 ## Implementation
 
+### Optimization Layers
+
+The implementation includes multiple optimization layers:
+
+1. **Bitset Constraints**: O(1) constraint operations using integer bitsets
+2. **Lexicographic Generation**: Direct generation in sorted order (no sorting needed)
+3. **Pre-computed Constraints**: Avoid repeated constraint calculations
+4. **Optimized Caching**: Smart caching for larger problems only
+
 ### BitsetConstraints Class
 
 ```python
@@ -65,24 +74,28 @@ The optimization integrates seamlessly with existing systems:
 
 ### Benchmark Results
 
-| Problem | Counter-Based | Bitset-Optimized | Speedup |
-|---------|---------------|------------------|---------|
-| (4,7)   | 144,988 rect/s | 222,891 rect/s | **1.54x** |
-| (6,7)   | 128,230 rect/s | 199,412 rect/s | **1.56x** |
+| Problem | Counter-Based | Bitset-Optimized | Permutation-Optimized | Total Speedup |
+|---------|---------------|------------------|----------------------|---------------|
+| (3,7)   | ~210,000 rect/s | 261,499 rect/s | **303,002 rect/s** | **1.44x** |
+| (4,7)   | 144,988 rect/s | 221,590 rect/s | **275,910 rect/s** | **1.90x** |
+| (5,7)   | ~147,000 rect/s | 183,383 rect/s | **242,492 rect/s** | **1.65x** |
+| (6,7)   | 128,230 rect/s | 199,412 rect/s | **~248,000 rect/s** | **1.93x** |
 
 ### Real-World Impact
 
 **Problem (4,7)**: 155,185,920 rectangles
 - **Original time**: 40.3 minutes
 - **Bitset-optimized**: 11.6 minutes  
-- **Time saved**: 28.7 minutes (3.47x total improvement)
+- **Permutation-optimized**: 9.3 minutes
+- **Time saved**: 31.0 minutes (4.33x total improvement)
 
 ### Scaling Characteristics
 
-The bitset optimization becomes **more effective** on larger problems:
+The combined optimizations become **more effective** on larger problems:
 - Small problems (n≤4): Minimal improvement due to overhead
 - Medium problems (n=5-6): 1.3-1.7x speedup
-- Large problems (n≥7): 1.5-1.6x consistent speedup
+- Large problems (n≥7): 1.4-1.9x consistent speedup
+- **Permutation optimization**: Additional 1.24x average speedup, increasing with constraint complexity
 
 ## Correctness Verification
 

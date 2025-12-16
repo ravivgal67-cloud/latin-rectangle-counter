@@ -7,7 +7,7 @@ validating normalized Latin rectangles.
 
 from typing import List, Iterator, Set
 from core.permutation import permutation_sign, generate_constrained_permutations
-from core.bitset_constraints import BitsetConstraints, generate_constrained_permutations_bitset
+from core.bitset_constraints import BitsetConstraints, generate_constrained_permutations_bitset, generate_constrained_permutations_bitset_optimized
 
 
 class LatinRectangle:
@@ -271,15 +271,15 @@ def generate_normalized_rectangles_bitset_optimized(r: int, n: int, start_counte
         """Get all valid permutations for given constraints, with optional caching."""
         if not use_cache:
             # For small problems, don't use cache to avoid overhead
-            valid_perms = list(generate_constrained_permutations_bitset(n, constraints))
-            return sorted(valid_perms)
+            # Use optimized generator that produces lexicographic order directly
+            return list(generate_constrained_permutations_bitset_optimized(n, constraints))
         
         cache_key = get_cache_key(constraints)
         
         if cache_key not in permutation_cache:
-            # Generate and sort all valid permutations
-            valid_perms = list(generate_constrained_permutations_bitset(n, constraints))
-            permutation_cache[cache_key] = sorted(valid_perms)  # Lexicographic order for determinism
+            # Generate permutations in lexicographic order directly (no sorting needed)
+            valid_perms = list(generate_constrained_permutations_bitset_optimized(n, constraints))
+            permutation_cache[cache_key] = valid_perms  # Already in lexicographic order
         
         return permutation_cache[cache_key]
     
@@ -525,7 +525,7 @@ class CounterBasedRectangleIterator:
                 for col_idx, value in enumerate(row):
                     constraints.add_forbidden(col_idx, value)
             
-            valid_perms = sorted(list(generate_constrained_permutations_bitset(self.n, constraints)))
+            valid_perms = list(generate_constrained_permutations_bitset_optimized(self.n, constraints))
             
             if not valid_perms:
                 raise ValueError(f"No valid permutations at level {level}")
@@ -573,7 +573,7 @@ class CounterBasedRectangleIterator:
                     for col_idx, value in enumerate(row):
                         constraints.add_forbidden(col_idx, value)
                 
-                valid_perms = sorted(list(generate_constrained_permutations_bitset(self.n, constraints)))
+                valid_perms = list(generate_constrained_permutations_bitset_optimized(self.n, constraints))
                 if self.counters[l] >= len(valid_perms):
                     return False
                 rows.append(valid_perms[self.counters[l]])
@@ -584,7 +584,7 @@ class CounterBasedRectangleIterator:
                 for col_idx, value in enumerate(row):
                     constraints.add_forbidden(col_idx, value)
             
-            valid_perms = sorted(list(generate_constrained_permutations_bitset(self.n, constraints)))
+            valid_perms = list(generate_constrained_permutations_bitset_optimized(self.n, constraints))
             return self.counters[level] < len(valid_perms)
             
         except (IndexError, ValueError):

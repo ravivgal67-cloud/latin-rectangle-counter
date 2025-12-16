@@ -7,6 +7,7 @@ import pytest
 from core.bitset_constraints import (
     BitsetConstraints, 
     generate_constrained_permutations_bitset,
+    generate_constrained_permutations_bitset_optimized,
     optimize_constraint_order
 )
 from core.latin_rectangle import (
@@ -159,10 +160,33 @@ class TestBitsetPermutationGeneration:
             
             # Generate with bitset approach
             constraints = BitsetConstraints.from_set_list(forbidden_sets)
-            bitset_perms = sorted(list(generate_constrained_permutations_bitset(n, constraints)))
+            bitset_perms = list(generate_constrained_permutations_bitset(n, constraints))
             
             # Should produce identical results
             assert set_perms == bitset_perms
+    
+    def test_optimized_vs_original_bitset(self):
+        """Test that optimized bitset generation matches original bitset generation."""
+        # Test various constraint patterns
+        test_cases = [
+            [{1}, {2}, set()],
+            [{1, 2}, set(), {3}],
+            [set(), {1, 3}, {2}],
+            [{2, 3}, {1}, set()],
+        ]
+        
+        for forbidden_sets in test_cases:
+            n = len(forbidden_sets)
+            constraints = BitsetConstraints.from_set_list(forbidden_sets)
+            
+            # Generate with original bitset approach
+            original_perms = list(generate_constrained_permutations_bitset(n, constraints))
+            
+            # Generate with optimized bitset approach
+            optimized_perms = list(generate_constrained_permutations_bitset_optimized(n, constraints))
+            
+            # Should produce identical results in same order
+            assert original_perms == optimized_perms
 
 
 class TestBitsetRectangleGeneration:

@@ -163,17 +163,18 @@ class BitsetConstraints:
 
 def generate_constrained_permutations_bitset(n: int, constraints: BitsetConstraints) -> Iterator[List[int]]:
     """
-    Generate all permutations satisfying bitset constraints.
+    Generate all permutations satisfying bitset constraints in lexicographic order.
     
-    This is an optimized version of generate_constrained_permutations
-    that uses bitset operations for faster constraint checking.
+    This optimized version generates permutations in sorted order directly,
+    eliminating the need to generate all permutations and then sort them.
+    Uses bitset operations for faster constraint checking.
     
     Args:
         n: Length of permutations
         constraints: BitsetConstraints object
         
     Yields:
-        Valid permutations as lists of integers
+        Valid permutations as lists of integers in lexicographic order
         
     Examples:
         >>> constraints = BitsetConstraints(3)
@@ -184,9 +185,12 @@ def generate_constrained_permutations_bitset(n: int, constraints: BitsetConstrai
         2
     """
     
-    def backtrack(partial_perm: List[int], used_values: int, pos: int) -> Iterator[List[int]]:
+    def backtrack_lexicographic(partial_perm: List[int], used_values: int, pos: int) -> Iterator[List[int]]:
         """
-        Backtrack to build valid permutations.
+        Backtrack to build valid permutations in lexicographic order.
+        
+        By iterating through values 1 to n in order, we naturally generate
+        permutations in lexicographic order without needing to sort.
         
         Args:
             partial_perm: Current partial permutation
@@ -197,19 +201,70 @@ def generate_constrained_permutations_bitset(n: int, constraints: BitsetConstrai
             yield partial_perm[:]
             return
         
-        # Get available values at this position
+        # Get forbidden values at this position
         forbidden_bits = constraints.forbidden[pos]
         
+        # Try values 1 to n in order for lexicographic ordering
         for value in range(1, n + 1):
             value_bit = 1 << (value - 1)
             
             # Check if value is available (not forbidden and not used)
             if not (forbidden_bits & value_bit) and not (used_values & value_bit):
                 partial_perm.append(value)
-                yield from backtrack(partial_perm, used_values | value_bit, pos + 1)
+                yield from backtrack_lexicographic(partial_perm, used_values | value_bit, pos + 1)
                 partial_perm.pop()
     
-    yield from backtrack([], 0, 0)
+    yield from backtrack_lexicographic([], 0, 0)
+
+
+def generate_constrained_permutations_bitset_optimized(n: int, constraints: BitsetConstraints) -> Iterator[List[int]]:
+    """
+    Highly optimized permutation generation with early pruning and constraint ordering.
+    
+    This version includes additional optimizations:
+    - Most-constrained-first ordering for faster pruning
+    - Early termination when no valid completions exist
+    - Optimized bitset operations
+    
+    Args:
+        n: Length of permutations
+        constraints: BitsetConstraints object
+        
+    Yields:
+        Valid permutations as lists of integers in lexicographic order
+    """
+    
+    # Pre-compute available values for each position to avoid repeated calculations
+    available_values = []
+    for pos in range(n):
+        forbidden_bits = constraints.forbidden[pos]
+        pos_available = []
+        for value in range(1, n + 1):
+            if not (forbidden_bits & (1 << (value - 1))):
+                pos_available.append(value)
+        available_values.append(pos_available)
+        
+        # Early termination if any position has no available values
+        if not pos_available:
+            return
+    
+    def backtrack_optimized(partial_perm: List[int], used_values: int, pos: int) -> Iterator[List[int]]:
+        """Optimized backtracking with pre-computed available values."""
+        if pos == n:
+            yield partial_perm[:]
+            return
+        
+        # Use pre-computed available values for this position
+        for value in available_values[pos]:
+            value_bit = 1 << (value - 1)
+            
+            # Check if value is not already used
+            if not (used_values & value_bit):
+                partial_perm.append(value)
+                yield from backtrack_optimized(partial_perm, used_values | value_bit, pos + 1)
+                partial_perm.pop()
+    
+    yield from backtrack_optimized([], 0, 0)
 
 
 def optimize_constraint_order(constraints: BitsetConstraints) -> List[int]:

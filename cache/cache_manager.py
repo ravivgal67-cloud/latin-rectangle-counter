@@ -138,6 +138,21 @@ class CacheManager:
             )
         """)
         
+        # Create counter_checkpoints table for counter-based resumable computations
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS counter_checkpoints (
+                r INTEGER NOT NULL,
+                n INTEGER NOT NULL,
+                counters TEXT NOT NULL,
+                positive_count INTEGER NOT NULL,
+                negative_count INTEGER NOT NULL,
+                rectangles_scanned INTEGER NOT NULL,
+                elapsed_time REAL NOT NULL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (r, n)
+            )
+        """)
+        
         conn.commit()
     
     def get(self, r: int, n: int) -> Optional[CountResult]:
@@ -346,7 +361,7 @@ class CacheManager:
                        positive_count: int, negative_count: int, 
                        rectangles_scanned: int, elapsed_time: float):
         """
-        Save a computation checkpoint.
+        Save a computation checkpoint (legacy method for partial rows).
         
         Args:
             r: Number of rows
@@ -376,7 +391,7 @@ class CacheManager:
     
     def load_checkpoint(self, r: int, n: int) -> Optional[dict]:
         """
-        Load a computation checkpoint.
+        Load a computation checkpoint (legacy method for partial rows).
         
         Args:
             r: Number of rows
@@ -412,7 +427,7 @@ class CacheManager:
     
     def delete_checkpoint(self, r: int, n: int):
         """
-        Delete a computation checkpoint.
+        Delete a computation checkpoint (legacy method).
         
         Args:
             r: Number of rows
@@ -426,6 +441,148 @@ class CacheManager:
         """, (r, n))
         
         conn.commit()
+    
+    def save_checkpoint_counters(self, r: int, n: int, counters: List[int], 
+                                positive_count: int, negative_count: int, 
+                                rectangles_scanned: int, elapsed_time: float):
+        """
+        Save a computation checkpoint using counter state.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            counters: List of counter values for each row level
+            positive_count: Count of positive rectangles found
+            negative_count: Count of negative rectangles found
+            rectangles_scanned: Total rectangles scanned
+            elapsed_time: Time spent so far in seconds
+        """
+        import json
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Create counter_checkpoints table if it doesn't exist
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS counter_checkpoints (
+                r INTEGER NOT NULL,
+                n INTEGER NOT NULL,
+                counters TEXT NOT NULL,
+                positive_count INTEGER NOT NULL,
+                negative_count INTEGER NOT NULL,
+                rectangles_scanned INTEGER NOT NULL,
+                elapsed_time REAL NOT NULL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (r, n)
+            )
+        """)
+        
+        counters_json = json.dumps(counters)
+        
+        cursor.execute("""
+            INSERT OR REPLACE INTO counter_checkpoints 
+            (r, n, counters, positive_count, negative_count, 
+             rectangles_scanned, elapsed_time, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (r, n, counters_json, positive_count, negative_count, 
+              rectangles_scanned, elapsed_time))
+        
+        conn.commit()
+    
+    def load_checkpoint_counters(self, r: int, n: int) -> Optional[dict]:
+        """
+        Load a computation checkpoint using counter state.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            
+        Returns:
+            Dictionary with checkpoint data or None if no checkpoint exists
+        """
+        import json
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Check if counter_checkpoints table exists
+        cursor.execute("""
+            SELECT name FROM sqlite_master WHERE type='table' AND name='counter_checkpoints'
+        """)
+        
+        if cursor.fetchone() is None:
+            return None  # Table doesn't exist, no checkpoint
+        
+        cursor.execute("""
+            SELECT counters, positive_count, negative_count, 
+                   rectangles_scanned, elapsed_time, created_at
+            FROM counter_checkpoints
+            WHERE r = ? AND n = ?
+        """, (r, n))
+        
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        
+        return {
+            'counters': json.loads(row['counters']),
+            'positive_count': row['positive_count'],
+            'negative_count': row['negative_count'],
+            'rectangles_scanned': row['rectangles_scanned'],
+            'elapsed_time': row['elapsed_time'],
+            'created_at': row['created_at']
+        }
+    
+    def delete_checkpoint_counters(self, r: int, n: int):
+        """
+        Delete a computation checkpoint using counter state.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Check if table exists first
+        cursor.execute("""
+            SELECT name FROM sqlite_master WHERE type='table' AND name='counter_checkpoints'
+        """)
+        
+        if cursor.fetchone() is not None:
+            cursor.execute("""
+                DELETE FROM counter_checkpoints WHERE r = ? AND n = ?
+            """, (r, n))
+            
+            conn.commit()
+    
+    def checkpoint_counters_exists(self, r: int, n: int) -> bool:
+        """
+        Check if a counter-based checkpoint exists for the given dimensions.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            
+        Returns:
+            True if checkpoint exists, False otherwise
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Check if table exists first
+        cursor.execute("""
+            SELECT name FROM sqlite_master WHERE type='table' AND name='counter_checkpoints'
+        """)
+        
+        if cursor.fetchone() is None:
+            return False
+        
+        cursor.execute("""
+            SELECT 1 FROM counter_checkpoints WHERE r = ? AND n = ? LIMIT 1
+        """, (r, n))
+        
+        return cursor.fetchone() is not None
     
     def checkpoint_exists(self, r: int, n: int) -> bool:
         """

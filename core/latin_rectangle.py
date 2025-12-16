@@ -228,10 +228,15 @@ def generate_normalized_rectangles(r: int, n: int) -> Iterator[LatinRectangle]:
 
 def generate_normalized_rectangles_counter_based(r: int, n: int, start_counters: List[int] = None) -> Iterator[LatinRectangle]:
     """
-    Generate all normalized Latin rectangles using counter-based iteration.
+    Generate all normalized Latin rectangles using optimized counter-based iteration.
     
     This implementation uses explicit counters for each row level, providing
     deterministic ordering and enabling precise resumption for checkpointing.
+    
+    Optimizations:
+    - Cached permutation generation to avoid recomputation
+    - Incremental constraint building
+    - Reduced list copying
     
     Args:
         r: Number of rows (2 ≤ r ≤ n)
@@ -258,28 +263,41 @@ def generate_normalized_rectangles_counter_based(r: int, n: int, start_counters:
     # Ensure we have enough counters
     counters = start_counters + [0] * (r - len(start_counters))
     
-    def get_valid_permutations(partial_rows: List[List[int]]) -> List[List[int]]:
-        """Get all valid permutations for the next row, sorted for deterministic order."""
-        # Build forbidden set for each position based on existing rows
-        forbidden = [set() for _ in range(n)]
-        for row in partial_rows:
-            for col_idx, value in enumerate(row):
-                forbidden[col_idx].add(value)
-        
-        # Generate and sort all valid permutations
-        valid_perms = list(generate_constrained_permutations(n, forbidden))
-        return sorted(valid_perms)  # Lexicographic order for determinism
+    # Cache for permutations to avoid recomputation (only for larger problems)
+    use_cache = (r * n) >= 20  # Only cache for larger problems to avoid overhead
+    permutation_cache = {} if use_cache else None
     
-    def generate_from_counters(partial_rows: List[List[int]], level: int, current_counters: List[int]) -> Iterator[LatinRectangle]:
+    def get_cache_key(forbidden_sets: List[Set[int]]) -> tuple:
+        """Create a hashable cache key from forbidden sets."""
+        return tuple(frozenset(s) for s in forbidden_sets)
+    
+    def get_valid_permutations_cached(forbidden: List[Set[int]]) -> List[List[int]]:
+        """Get all valid permutations for given constraints, with optional caching."""
+        if not use_cache:
+            # For small problems, don't use cache to avoid overhead
+            valid_perms = list(generate_constrained_permutations(n, forbidden))
+            return sorted(valid_perms)
+        
+        cache_key = get_cache_key(forbidden)
+        
+        if cache_key not in permutation_cache:
+            # Generate and sort all valid permutations
+            valid_perms = list(generate_constrained_permutations(n, forbidden))
+            permutation_cache[cache_key] = sorted(valid_perms)  # Lexicographic order for determinism
+        
+        return permutation_cache[cache_key]
+    
+    def generate_from_counters(partial_rows: List[List[int]], level: int, 
+                             forbidden: List[Set[int]], current_counters: List[int]) -> Iterator[LatinRectangle]:
         """Generate rectangles starting from specified counter positions."""
         
         if level == r:
             # Base case: complete rectangle
-            yield LatinRectangle(r, n, [row.copy() for row in partial_rows])
+            yield LatinRectangle(r, n, [row[:] for row in partial_rows])  # Faster list copy
             return
         
-        # Get valid permutations for this level
-        valid_perms = get_valid_permutations(partial_rows)
+        # Get valid permutations for this level (cached)
+        valid_perms = get_valid_permutations_cached(forbidden)
         
         if not valid_perms:
             # No valid permutations possible - dead end
@@ -293,24 +311,36 @@ def generate_normalized_rectangles_counter_based(r: int, n: int, start_counters:
             return  # Counter is beyond available permutations
         
         for i, perm in enumerate(valid_perms[start_idx:], start_idx):
+            # Add this row to partial rectangle
             partial_rows.append(perm)
             
-            # For the first iteration at this level, use existing counters for deeper levels
-            # For subsequent iterations, reset deeper level counters to 0
+            # Update forbidden sets by adding values from this row
+            for col_idx, value in enumerate(perm):
+                forbidden[col_idx].add(value)
+            
+            # Prepare counters for next level
             if i == start_idx:
                 # First iteration - use existing deeper counters
-                next_counters = current_counters.copy()
+                next_counters = current_counters
             else:
                 # Subsequent iterations - reset deeper counters
                 next_counters = current_counters[:level+1] + [0] * (r - level - 1)
                 next_counters[level] = i
             
-            yield from generate_from_counters(partial_rows, level + 1, next_counters)
+            yield from generate_from_counters(partial_rows, level + 1, forbidden, next_counters)
+            
+            # Backtrack: remove this row and its constraints
             partial_rows.pop()
+            for col_idx, value in enumerate(perm):
+                forbidden[col_idx].remove(value)
     
-    # Start with identity first row
+    # Start with identity first row and initial forbidden sets
     first_row = list(range(1, n + 1))
-    yield from generate_from_counters([first_row], 1, counters)
+    initial_forbidden = [set() for _ in range(n)]
+    for col_idx, value in enumerate(first_row):
+        initial_forbidden[col_idx].add(value)
+    
+    yield from generate_from_counters([first_row], 1, initial_forbidden, counters)
 
 
 class CounterBasedRectangleIterator:

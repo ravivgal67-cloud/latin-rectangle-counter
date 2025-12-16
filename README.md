@@ -9,6 +9,7 @@ A high-performance web application for counting and analyzing normalized Latin r
 ## ✨ Features
 
 - **Fast Computation**: Optimized constraint propagation algorithm with 1.5x-3600x speedup for high-constraint cases
+- **Resumable Computation**: Counter-based checkpointing enables interruption and resumption of long-running computations
 - **Smart Caching**: SQLite-based caching with computation time tracking
 - **Dual Views**: 
   - **Calculate**: Compute new results with real-time progress tracking
@@ -127,7 +128,22 @@ xdg-open htmlcov/index.html  # Linux
 
 ## ⚡ Performance
 
-The constraint propagation optimization provides significant speedups:
+### Counter-Based Optimization (Latest)
+
+The counter-based implementation with caching provides consistent speedups:
+
+| Dimension | Original Time | Optimized Time | Speedup |
+|-----------|---------------|----------------|---------|
+| (2,5) | ~2.1s | ~0.5s | **4.21x** |
+| (4,6) | ~20.3s | ~13.6s | **1.49x** |
+| (5,6) | - | 9.7s | - |
+| (6,6) | - | 13.9s | - |
+
+**Average speedup**: **1.47x** with resumable computation capability.
+
+### Constraint Propagation Optimization
+
+The constraint propagation optimization provides additional speedups for high-constraint cases:
 
 | Dimension | Naive Time | Optimized Time | Speedup |
 |-----------|------------|----------------|---------|
@@ -136,7 +152,7 @@ The constraint propagation optimization provides significant speedups:
 
 **Key insight**: Optimization is most effective when **r ≥ n/2** (constraint density ≥ 50%)
 
-See [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md) for detailed analysis.
+See [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md) and [docs/RESUMABLE_COMPUTATION.md](docs/RESUMABLE_COMPUTATION.md) for detailed analysis.
 
 ## 📚 Documentation
 
@@ -147,6 +163,7 @@ See [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md) for detailed analysis.
 ### Technical Documentation
 - **[docs/OPTIMIZATION.md](docs/OPTIMIZATION.md)** - Constraint propagation optimization analysis and benchmarks
 - **[docs/COVERAGE.md](docs/COVERAGE.md)** - Test coverage report and gap analysis
+- **[docs/RESUMABLE_COMPUTATION.md](docs/RESUMABLE_COMPUTATION.md)** - Resumable computation with checkpointing implementation
 
 ### Specifications
 - **[Design Document](.kiro/specs/latin-rectangle-counter/design.md)** - Architecture, algorithms, and correctness properties

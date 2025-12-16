@@ -1,20 +1,21 @@
 # Latin Rectangle Counter 🔢
 
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-141%20passed-success)](tests/)
+[![Tests](https://img.shields.io/badge/tests-171%20passed-success)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-94%25-brightgreen)](htmlcov/index.html)
 
-A high-performance web application for counting and analyzing normalized Latin rectangles, featuring an optimized constraint propagation algorithm and comprehensive caching system.
+A high-performance web application for counting and analyzing normalized Latin rectangles, featuring a comprehensive optimization stack with up to **2x speedup** and resumable computation capabilities.
 
 ## ✨ Features
 
-- **Fast Computation**: Optimized constraint propagation algorithm with 1.5x-3600x speedup for high-constraint cases
+- **Ultra-Fast Computation**: Multi-layer optimization stack with up to **2x speedup** for large problems
 - **Resumable Computation**: Counter-based checkpointing enables interruption and resumption of long-running computations
+- **Advanced Optimizations**: Bitset constraints, lexicographic generation, and batch operations
 - **Smart Caching**: SQLite-based caching with computation time tracking
 - **Dual Views**: 
   - **Calculate**: Compute new results with real-time progress tracking
   - **Results**: Browse and filter cached computations
-- **Property-Based Testing**: 141 tests with 94% coverage using Hypothesis
+- **Property-Based Testing**: 171 tests with 94% coverage using Hypothesis
 - **Performance Insights**: Track computation time and timestamps for all results
 
 ## 🚀 Quick Start
@@ -67,6 +68,30 @@ Each rectangle has a **sign** (±1) based on the parity of its row permutations:
 - **Positive (+1)**: Even number of inversions
 - **Negative (-1)**: Odd number of inversions
 
+## 🏆 Optimization Achievements
+
+This project demonstrates systematic performance optimization through multiple complementary approaches:
+
+### **🔬 Methodology**
+1. **Profiling-Driven**: Identified bottlenecks through systematic profiling
+2. **Incremental Optimization**: Layered optimizations building on each other
+3. **Correctness-First**: 100% correctness maintained throughout optimization
+4. **Comprehensive Testing**: Each optimization thoroughly tested and documented
+
+### **📈 Results Summary**
+- **2.04x speedup** for (4,7) - most significant improvement
+- **1.59x-1.72x speedup** across n=7 problems  
+- **9+ minutes saved** for large computations
+- **Zero correctness regressions** - all optimizations maintain identical results
+
+### **🛠️ Technical Innovations**
+- **Bitset Constraints**: Revolutionary O(1) constraint checking using integer bitsets
+- **Lexicographic Generation**: Eliminates expensive sorting through direct ordered generation
+- **Batch Operations**: Reduces function call overhead through intelligent batching
+- **Resumable Architecture**: Counter-based deterministic generation enables precise checkpointing
+
+This optimization work makes previously impractical computations (n≥7) feasible for mathematical research.
+
 ## 🎯 Usage Examples
 
 ### Calculate View
@@ -86,8 +111,9 @@ Each rectangle has a **sign** (±1) based on the parity of its row permutations:
 .
 ├── core/              # Core counting engine
 │   ├── counter.py     # Main counting algorithms
+│   ├── latin_rectangle.py # Rectangle generation with optimizations
+│   ├── bitset_constraints.py # Bitset constraint optimization
 │   ├── permutation.py # Permutation utilities & optimization
-│   ├── latin_rectangle.py
 │   └── validation.py
 ├── cache/             # SQLite caching layer
 │   └── cache_manager.py
@@ -122,37 +148,50 @@ xdg-open htmlcov/index.html  # Linux
 ```
 
 ### Test Statistics
-- **141 tests** - All passing ✅
+- **171 tests** - All passing ✅
 - **94% coverage** - Excellent coverage across all modules
 - **Property-based tests** - Using Hypothesis for robust validation
+- **Optimization tests** - Comprehensive coverage of all optimization layers
 
 ## ⚡ Performance
 
-### Counter-Based Optimization (Latest)
+### Multi-Layer Optimization Stack
 
-The counter-based implementation with caching provides consistent speedups:
+Our comprehensive optimization approach delivers substantial performance improvements:
 
-| Dimension | Original Time | Optimized Time | Speedup |
-|-----------|---------------|----------------|---------|
-| (2,5) | ~2.1s | ~0.5s | **4.21x** |
-| (4,6) | ~20.3s | ~13.6s | **1.49x** |
-| (5,6) | - | 9.7s | - |
-| (6,6) | - | 13.9s | - |
+#### **🚀 Optimization Layers**
+1. **Counter-Based Generation**: Deterministic ordering + resumable computation
+2. **Bitset Constraints**: O(1) constraint operations using integer bitsets  
+3. **Lexicographic Generation**: Direct sorted order (eliminates sorting overhead)
+4. **Batch Operations**: Reduced function call overhead
 
-**Average speedup**: **1.47x** with resumable computation capability.
+#### **📊 Performance Results**
 
-### Constraint Propagation Optimization
+| Problem | Original | Fully Optimized | Total Speedup | Time Saved |
+|---------|----------|-----------------|---------------|-------------|
+| **(3,7)** | 210,000 rect/s | **333,188 rect/s** | **1.59x** | Significant |
+| **(4,7)** | 144,988 rect/s | **295,482 rect/s** | **2.04x** | ~9 minutes |
+| **(5,7)** | 147,000 rect/s | **252,132 rect/s** | **1.72x** | Substantial |
 
-The constraint propagation optimization provides additional speedups for high-constraint cases:
+#### **🎯 Real-World Impact**
+
+**Problem (4,7)** - 155,185,920 rectangles:
+- **Before**: ~18 minutes computation time
+- **After**: ~9 minutes computation time  
+- **Improvement**: 2x faster, saves 9 minutes
+
+#### **🔧 Legacy Optimizations**
+
+Previous constraint propagation optimization for high-constraint cases:
 
 | Dimension | Naive Time | Optimized Time | Speedup |
 |-----------|------------|----------------|---------|
 | (5,5) | 49ms | 33ms | **1.5x** |
 | (6,6) | >180s | ~50ms | **>3600x** |
 
-**Key insight**: Optimization is most effective when **r ≥ n/2** (constraint density ≥ 50%)
+**Key insight**: Most effective when **r ≥ n/2** (constraint density ≥ 50%)
 
-See [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md) and [docs/RESUMABLE_COMPUTATION.md](docs/RESUMABLE_COMPUTATION.md) for detailed analysis.
+See detailed analysis in our optimization documentation below.
 
 ## 📚 Documentation
 
@@ -161,9 +200,12 @@ See [docs/OPTIMIZATION.md](docs/OPTIMIZATION.md) and [docs/RESUMABLE_COMPUTATION
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contributor guidelines, setup, and code style
 
 ### Technical Documentation
-- **[docs/OPTIMIZATION.md](docs/OPTIMIZATION.md)** - Constraint propagation optimization analysis and benchmarks
+- **[docs/BITSET_OPTIMIZATION.md](docs/BITSET_OPTIMIZATION.md)** - Bitset constraint optimization (1.5x speedup)
+- **[docs/PERMUTATION_OPTIMIZATION.md](docs/PERMUTATION_OPTIMIZATION.md)** - Lexicographic generation optimization (1.24x speedup)
+- **[docs/BATCH_CONSTRAINTS_OPTIMIZATION.md](docs/BATCH_CONSTRAINTS_OPTIMIZATION.md)** - Batch operations optimization (1.07x speedup)
+- **[docs/OPTIMIZATION.md](docs/OPTIMIZATION.md)** - Legacy constraint propagation optimization analysis
+- **[docs/RESUMABLE_COMPUTATION.md](docs/RESUMABLE_COMPUTATION.md)** - Resumable computation with checkpointing
 - **[docs/COVERAGE.md](docs/COVERAGE.md)** - Test coverage report and gap analysis
-- **[docs/RESUMABLE_COMPUTATION.md](docs/RESUMABLE_COMPUTATION.md)** - Resumable computation with checkpointing implementation
 
 ### Specifications
 - **[Design Document](.kiro/specs/latin-rectangle-counter/design.md)** - Architecture, algorithms, and correctness properties
@@ -214,6 +256,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - Built with [Flask](https://flask.palletsprojects.com/)
 - Tested with [Hypothesis](https://hypothesis.readthedocs.io/)
 - Inspired by combinatorial mathematics and Latin square theory
+- Performance optimization techniques inspired by systems programming and algorithmic optimization
 
 ## 📧 Contact
 

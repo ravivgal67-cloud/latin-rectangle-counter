@@ -17,6 +17,7 @@ from core.formatting import format_for_web
 from cache.cache_manager import CacheManager
 from core.progress import ProgressTracker
 from core.auto_counter import count_rectangles_auto, get_recommended_processes
+from core.logging_config import get_logger
 
 
 def create_app(cache_manager: CacheManager = None) -> Flask:
@@ -38,6 +39,10 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
     
     # Configure CORS for frontend
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+    
+    # Initialize logging system for computations
+    computation_logger = get_logger("web_session")
+    app.logger.info("🚀 Initialized computation logging system")
     
     # Suppress logging for progress endpoint
     import logging
@@ -197,6 +202,10 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
                 if cached_result:
                     result = cached_result
                 else:
+                    # Initialize logging for this computation
+                    computation_logger = get_logger(f"web_computation_{r}_{n}")
+                    computation_logger.info(f"🚀 Starting computation for ({r},{n}) with {num_processes_int or 'auto'} processes")
+                    
                     # Determine force flags based on num_processes
                     force_single = (num_processes_int == 1)
                     force_parallel = (num_processes_int is not None and num_processes_int > 1)
@@ -207,6 +216,8 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
                         force_single=force_single,
                         force_parallel=force_parallel
                     )
+                    
+                    computation_logger.info(f"✅ Completed computation for ({r},{n}): {result.positive_count + result.negative_count:,} rectangles")
                     
                     # Cache the result
                     cache_manager.set(r, n, result)
@@ -222,7 +233,13 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
                         "error": validation.error_message
                     }), 400
                 
+                # Initialize logging for this computation
+                computation_logger = get_logger(f"web_computation_all_for_{n}")
+                computation_logger.info(f"🚀 Starting computation for all r with n={n}")
+                
                 results = count_for_n(n, cache_manager, progress_tracker, enable_progress_db=True)
+                
+                computation_logger.info(f"✅ Completed computation for all r with n={n}: {len(results)} results")
                 
             elif n_start is not None and n_end is not None:
                 # Range mode
@@ -233,7 +250,13 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
                         "error": validation.error_message
                     }), 400
                 
+                # Initialize logging for this computation
+                computation_logger = get_logger(f"web_computation_range_{n_start}_{n_end}")
+                computation_logger.info(f"🚀 Starting computation for range n={n_start} to {n_end}")
+                
                 results = count_range(n_start, n_end, cache_manager, progress_tracker, enable_progress_db=True)
+                
+                computation_logger.info(f"✅ Completed computation for range n={n_start} to {n_end}: {len(results)} results")
                 
             else:
                 return jsonify({

@@ -12,11 +12,14 @@ A high-performance web application for counting and analyzing normalized Latin r
 - **Resumable Computation**: Counter-based checkpointing enables interruption and resumption of long-running computations
 - **Advanced Optimizations**: Bitset constraints, lexicographic generation, and batch operations
 - **Smart Caching**: SQLite-based caching with computation time tracking
+- **Comprehensive Logging**: Session-based logging with detailed progress tracking for long-running computations
+- **Parallel Processing**: Multi-core support for large problems with automatic scaling
 - **Dual Views**: 
   - **Calculate**: Compute new results with real-time progress tracking
   - **Results**: Browse and filter cached computations
 - **Property-Based Testing**: 171 tests with 94% coverage using Hypothesis
 - **Performance Insights**: Track computation time and timestamps for all results
+- **Crash Recovery**: Detailed logging for resuming interrupted computations
 
 ## 🚀 Quick Start
 
@@ -114,7 +117,9 @@ This optimization work makes previously impractical computations (n≥7) feasibl
 │   ├── latin_rectangle.py # Rectangle generation with optimizations
 │   ├── bitset_constraints.py # Bitset constraint optimization
 │   ├── permutation.py # Permutation utilities & optimization
-│   └── validation.py
+│   ├── validation.py
+│   ├── logging_config.py          # Comprehensive logging system
+│   └── logged_parallel_generation.py  # Parallel processing with logging
 ├── cache/             # SQLite caching layer
 │   └── cache_manager.py
 ├── web/               # Flask web application
@@ -126,6 +131,7 @@ This optimization work makes previously impractical computations (n≥7) feasibl
 │   ├── benchmark_optimization.py
 │   ├── monitor_progress.py
 │   └── README.md
+├── logs/              # Session-based log files (auto-created)
 └── .kiro/specs/       # Feature specifications
 ```
 
@@ -206,6 +212,7 @@ See detailed analysis in our optimization documentation below.
 - **[docs/OPTIMIZATION.md](docs/OPTIMIZATION.md)** - Legacy constraint propagation optimization analysis
 - **[docs/RESUMABLE_COMPUTATION.md](docs/RESUMABLE_COMPUTATION.md)** - Resumable computation with checkpointing
 - **[docs/COVERAGE.md](docs/COVERAGE.md)** - Test coverage report and gap analysis
+- **[docs/LOGGING_SYSTEM.md](docs/LOGGING_SYSTEM.md)** - Comprehensive logging system for long-running computations
 
 ### Specifications
 - **[Design Document](.kiro/specs/latin-rectangle-counter/design.md)** - Architecture, algorithms, and correctness properties

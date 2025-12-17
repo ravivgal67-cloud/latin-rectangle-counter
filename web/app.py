@@ -220,7 +220,7 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
                     computation_logger.info(f"✅ Completed computation for ({r},{n}): {result.positive_count + result.negative_count:,} rectangles")
                     
                     # Cache the result
-                    cache_manager.set(r, n, result)
+                    cache_manager.put(result)
                 
                 results = [result]
                 

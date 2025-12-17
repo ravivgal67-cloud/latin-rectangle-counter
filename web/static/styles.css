@@ -1542,3 +1542,115 @@ header h1 {
         gap: 15px;
     }
 }
+
+
+/* Parallel Processing Settings */
+.parallel-settings {
+    margin: 24px 0;
+    padding: 20px;
+    background: var(--primary-light);
+    border: 2px solid var(--primary-color);
+    border-radius: 12px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.settings-header {
+    margin-bottom: 16px;
+}
+
+.settings-header h3 {
+    font-size: 1.1rem;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.recommendation-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+}
+
+.recommendation-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.recommendation-content {
+    flex: 1;
+}
+
+.recommendation-text {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.recommendation-text strong {
+    color: var(--primary-color);
+}
+
+.recommendation-details {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.separator {
+    color: var(--border);
+}
+
+.process-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.process-selector label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.process-selector select {
+    padding: 10px 12px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: white;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.process-selector select:hover {
+    border-color: var(--primary-color);
+}
+
+.process-selector select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.process-selector .hint {
+    font-size: 0.8rem;
+    color: var(--text-hint);
+}

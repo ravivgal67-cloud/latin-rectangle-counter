@@ -45,7 +45,8 @@ def get_valid_second_rows(n: int) -> List[List[int]]:
 
 
 def count_rectangles_with_fixed_second_row(r: int, n: int, second_row: List[int], 
-                                          precomputed_sign: Optional[int] = None) -> Tuple[int, int, int]:
+                                          precomputed_sign: Optional[int] = None,
+                                          second_row_idx: Optional[int] = None) -> Tuple[int, int, int]:
     """
     Count all rectangles with a fixed first and second row.
     
@@ -58,6 +59,7 @@ def count_rectangles_with_fixed_second_row(r: int, n: int, second_row: List[int]
         n: Number of columns  
         second_row: Fixed second row permutation
         precomputed_sign: Optional pre-computed sign for r=2 case (optimization)
+        second_row_idx: Optional index of second row in derangements list (for bitwise ops)
         
     Returns:
         Tuple of (total_count, positive_count, negative_count)

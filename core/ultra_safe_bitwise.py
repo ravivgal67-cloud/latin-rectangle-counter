@@ -22,7 +22,10 @@ def count_rectangles_ultra_safe_bitwise(r: int, n: int) -> Tuple[int, int, int]:
     """
     
     # Get smart derangements with pre-computed signs
-    derangements_with_signs = get_smart_derangements_with_signs(n)
+    # Use get_smart_derangement_cache to avoid double-loading
+    from core.smart_derangement_cache import get_smart_derangement_cache
+    cache = get_smart_derangement_cache(n)
+    derangements_with_signs = cache.get_all_derangements_with_signs()
     num_derangements = len(derangements_with_signs)
     
     print(f"   🚀 Using smart derangement cache: {num_derangements:,} derangements")
@@ -36,7 +39,6 @@ def count_rectangles_ultra_safe_bitwise(r: int, n: int) -> Tuple[int, int, int]:
         return total_count, positive_count, negative_count
     
     # Pre-compute conflict bitsets for faster operations
-    cache = SmartDerangementCache(n)
     position_value_index = cache.position_value_index
     
     # Pre-compute conflict bitsets - each conflict set becomes a bitmask

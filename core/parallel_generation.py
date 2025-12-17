@@ -21,7 +21,8 @@ def get_valid_second_rows(n: int) -> List[List[int]]:
     """
     Get all valid second row permutations for normalized Latin rectangles.
     
-    Generates derangements dynamically using bitset constraints.
+    Uses smart derangement cache when available for instant loading with pre-computed signs,
+    falls back to dynamic generation for compatibility.
     
     Args:
         n: Number of columns
@@ -29,15 +30,22 @@ def get_valid_second_rows(n: int) -> List[List[int]]:
     Returns:
         List of all valid second row permutations (derangements)
     """
-    # Generate all valid second row permutations (derangements)
-    # These are permutations that have no fixed points with [1,2,3,...,n]
-    constraints = BitsetConstraints(n)
-    constraints.add_row_constraints(list(range(1, n + 1)))
-    valid_rows = list(generate_constrained_permutations_bitset_optimized(n, constraints))
-    return valid_rows
+    try:
+        # Try to use smart derangement cache for optimized performance
+        from core.smart_derangement_cache import get_smart_derangements_with_signs
+        derangements_with_signs = get_smart_derangements_with_signs(n)
+        # Extract just the derangements (signs will be used elsewhere)
+        return [derangement for derangement, sign in derangements_with_signs]
+    except (ImportError, ModuleNotFoundError):
+        # Fall back to dynamic generation if smart cache not available
+        constraints = BitsetConstraints(n)
+        constraints.add_row_constraints(list(range(1, n + 1)))
+        valid_rows = list(generate_constrained_permutations_bitset_optimized(n, constraints))
+        return valid_rows
 
 
-def count_rectangles_with_fixed_second_row(r: int, n: int, second_row: List[int]) -> Tuple[int, int, int]:
+def count_rectangles_with_fixed_second_row(r: int, n: int, second_row: List[int], 
+                                          precomputed_sign: Optional[int] = None) -> Tuple[int, int, int]:
     """
     Count all rectangles with a fixed first and second row.
     
@@ -49,15 +57,21 @@ def count_rectangles_with_fixed_second_row(r: int, n: int, second_row: List[int]
         r: Number of rows
         n: Number of columns  
         second_row: Fixed second row permutation
+        precomputed_sign: Optional pre-computed sign for r=2 case (optimization)
         
     Returns:
         Tuple of (total_count, positive_count, negative_count)
     """
     if r == 2:
         # For r=2, we just have the two-row rectangle
-        from core.latin_rectangle import LatinRectangle
-        rect = LatinRectangle(2, n, [list(range(1, n + 1)), second_row])
-        sign = rect.compute_sign()
+        if precomputed_sign is not None:
+            # Use pre-computed sign for performance
+            sign = precomputed_sign
+        else:
+            # Fall back to dynamic computation
+            from core.latin_rectangle import LatinRectangle
+            rect = LatinRectangle(2, n, [list(range(1, n + 1)), second_row])
+            sign = rect.compute_sign()
         
         if sign > 0:
             return 1, 1, 0
@@ -92,7 +106,50 @@ def count_rectangles_with_fixed_second_row(r: int, n: int, second_row: List[int]
                 negative_count += 1
             return
         
-        # Generate valid next rows
+        # Try to use smart cache for final row optimization
+        try:
+            from core.smart_derangement_cache import get_constraint_compatible_derangements
+            # Use smart cache with pre-computed signs for final row
+            if level == r - 1:  # This is the final row
+                compatible_derangements = get_constraint_compatible_derangements(n, current_constraints)
+                # Get the sign of the second row from smart cache
+                second_row_sign = None
+                try:
+                    from core.smart_derangement_cache import get_smart_derangements_with_signs
+                    second_rows_with_signs = get_smart_derangements_with_signs(n)
+                    for cached_row, cached_sign in second_rows_with_signs:
+                        if cached_row == second_row:
+                            second_row_sign = cached_sign
+                            break
+                except:
+                    pass
+                
+                for next_row, third_row_sign in compatible_derangements:
+                    # Direct sign computation without determinant!
+                    # Rectangle sign = product of row signs (for normalized rectangles)
+                    first_row_sign = 1  # Identity permutation always has sign +1
+                    
+                    if second_row_sign is not None:
+                        # Use pre-computed signs: rectangle_sign = row1_sign * row2_sign * row3_sign
+                        rectangle_sign = first_row_sign * second_row_sign * third_row_sign
+                    else:
+                        # Fallback to determinant calculation
+                        partial_rows.append(next_row)
+                        from core.latin_rectangle import LatinRectangle
+                        rect = LatinRectangle(r, n, [row[:] for row in partial_rows])
+                        rectangle_sign = rect.compute_sign()
+                        partial_rows.pop()
+                    
+                    total_count += 1
+                    if rectangle_sign > 0:
+                        positive_count += 1
+                    else:
+                        negative_count += 1
+                return  # Skip the general case below
+        except (ImportError, ModuleNotFoundError):
+            pass
+        
+        # General case: generate valid next rows using bitset constraints
         valid_next_rows = list(generate_constrained_permutations_bitset_optimized(n, current_constraints))
         
         for next_row in valid_next_rows:
@@ -114,16 +171,16 @@ def count_rectangles_with_fixed_second_row(r: int, n: int, second_row: List[int]
     return total_count, positive_count, negative_count
 
 
-def process_second_row_partition(r: int, n: int, second_rows: List[List[int]]) -> Tuple[int, int, int, float]:
+def process_second_row_partition(r: int, n: int, second_rows_data) -> Tuple[int, int, int, float]:
     """
-    Process a partition of second-row permutations.
+    Process a partition of second-row permutations with optional pre-computed signs.
     
     This function is designed to be run in a separate process.
     
     Args:
         r: Number of rows
         n: Number of columns
-        second_rows: List of second-row permutations to process
+        second_rows_data: Either List[List[int]] (legacy) or List[Tuple[List[int], int]] (with signs)
         
     Returns:
         Tuple of (total_count, positive_count, negative_count, elapsed_time)
@@ -134,11 +191,23 @@ def process_second_row_partition(r: int, n: int, second_rows: List[List[int]]) -
     positive_count = 0
     negative_count = 0
     
-    for second_row in second_rows:
-        part_total, part_positive, part_negative = count_rectangles_with_fixed_second_row(r, n, second_row)
-        total_count += part_total
-        positive_count += part_positive
-        negative_count += part_negative
+    # Handle both legacy format and new format with pre-computed signs
+    if second_rows_data and isinstance(second_rows_data[0], tuple):
+        # New format: List[Tuple[List[int], int]] with pre-computed signs
+        for second_row, precomputed_sign in second_rows_data:
+            part_total, part_positive, part_negative = count_rectangles_with_fixed_second_row(
+                r, n, second_row, precomputed_sign
+            )
+            total_count += part_total
+            positive_count += part_positive
+            negative_count += part_negative
+    else:
+        # Legacy format: List[List[int]] without signs
+        for second_row in second_rows_data:
+            part_total, part_positive, part_negative = count_rectangles_with_fixed_second_row(r, n, second_row)
+            total_count += part_total
+            positive_count += part_positive
+            negative_count += part_negative
     
     elapsed_time = time.time() - start_time
     return total_count, positive_count, negative_count, elapsed_time
@@ -225,28 +294,45 @@ def count_rectangles_parallel(r: int, n: int, num_processes: Optional[int] = Non
     
     print(f"🚀 Using row-based parallel processing with {num_processes} processes")
     
-    # Get all valid second rows
-    second_rows = get_valid_second_rows(n)
-    print(f"Found {len(second_rows):,} valid second-row permutations")
+    # Get all valid second rows with smart cache optimization
+    try:
+        # Try to use smart derangement cache for maximum performance
+        from core.smart_derangement_cache import get_smart_derangements_with_signs
+        second_rows_with_signs = get_smart_derangements_with_signs(n)
+        print(f"🚀 Using smart derangement cache: {len(second_rows_with_signs):,} derangements with pre-computed signs")
+        use_smart_cache = True
+    except (ImportError, ModuleNotFoundError):
+        # Fall back to legacy approach
+        second_rows = get_valid_second_rows(n)
+        second_rows_with_signs = [(row, None) for row in second_rows]  # No pre-computed signs
+        print(f"Found {len(second_rows):,} valid second-row permutations (dynamic generation)")
+        use_smart_cache = False
     
     # Create work partitions by distributing second rows across processes
-    rows_per_process = len(second_rows) // num_processes
+    total_rows = len(second_rows_with_signs)
+    rows_per_process = total_rows // num_processes
     if rows_per_process == 0:
         rows_per_process = 1
-        num_processes = len(second_rows)
+        num_processes = total_rows
     
     partitions = []
     for i in range(num_processes):
         start_idx = i * rows_per_process
         if i == num_processes - 1:
             # Last process gets remaining rows
-            end_idx = len(second_rows)
+            end_idx = total_rows
         else:
             end_idx = (i + 1) * rows_per_process
         
-        partition_rows = second_rows[start_idx:end_idx]
-        partitions.append(partition_rows)
-        print(f"Process {i+1}: {len(partition_rows):,} second-row permutations (indices {start_idx}-{end_idx-1})")
+        if use_smart_cache:
+            # Partition with pre-computed signs
+            partition_data = second_rows_with_signs[start_idx:end_idx]
+        else:
+            # Legacy partition format
+            partition_data = [row for row, _ in second_rows_with_signs[start_idx:end_idx]]
+        
+        partitions.append(partition_data)
+        print(f"Process {i+1}: {len(partition_data):,} second-row permutations (indices {start_idx}-{end_idx-1})")
     
     # Initialize counts
     total_count = 0
@@ -264,19 +350,26 @@ def count_rectangles_parallel(r: int, n: int, num_processes: Optional[int] = Non
             )
             futures.append((i, future))
         
-        # Collect results as they complete
+        # Collect results as they complete (not in submission order)
         completed = 0
         process_results = {}
         
-        for i, future in futures:
+        for future in as_completed([f for _, f in futures]):
             try:
+                # Find which process this future belongs to
+                process_id = None
+                for i, (pid, fut) in enumerate(futures):
+                    if fut == future:
+                        process_id = pid
+                        break
+                
                 part_total, part_positive, part_negative, part_time = future.result()
                 total_count += part_total
                 positive_count += part_positive
                 negative_count += part_negative
                 
                 completed += 1
-                process_results[i] = {
+                process_results[process_id] = {
                     'total': part_total,
                     'positive': part_positive,
                     'negative': part_negative,
@@ -284,14 +377,14 @@ def count_rectangles_parallel(r: int, n: int, num_processes: Optional[int] = Non
                 }
                 
                 # Show per-process completion with details
-                print(f"✅ Process {i+1}/{num_processes} complete: {part_total:,} rectangles (+{part_positive:,} -{part_negative:,}) in {part_time:.2f}s")
+                print(f"✅ Process {process_id+1}/{num_processes} complete: {part_total:,} rectangles (+{part_positive:,} -{part_negative:,}) in {part_time:.2f}s")
                 
                 # Show overall progress
                 progress_pct = (completed / num_processes) * 100
                 print(f"📊 Overall progress: {completed}/{num_processes} processes ({progress_pct:.0f}%) - {total_count:,} total rectangles")
                 
             except Exception as e:
-                print(f"❌ Process {i+1} failed: {e}")
+                print(f"❌ Process failed: {e}")
                 # Continue with other processes
     
     computation_time = time.time() - start_time

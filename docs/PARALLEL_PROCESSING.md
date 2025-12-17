@@ -17,10 +17,10 @@ The parallel implementation uses **row-based partitioning** where work is distri
 
 ### Key Components
 
-- **`core/parallel_generation.py`**: Main parallel processing implementation
-- **`core/derangement_cache.py`**: Optional static cache for instant derangement loading
+- **`core/parallel_generation.py`**: Main parallel processing implementation with smart cache integration
 - **Row-based partitioning**: Ensures complete coverage with no overlap between processes
 - **Enhanced progress reporting**: Per-process completion tracking with detailed metrics
+- **Smart cache integration**: Automatic optimization with graceful fallback (see [SMART_DERANGEMENT_CACHE.md](SMART_DERANGEMENT_CACHE.md))
 
 ## Performance Results
 
@@ -103,14 +103,16 @@ Process 4: 465 second-row permutations (indices 1389-1853)
    Process 4: 269,316 rectangles (+135,103 -134,213) in 1.74s (154,712 rect/s)
 ```
 
-## Derangement Cache Integration
+## Smart Derangement Cache Integration
 
-The parallel implementation integrates seamlessly with the derangement cache:
+The parallel implementation integrates seamlessly with the smart derangement cache for maximum performance:
 
-- **With Cache**: Instant loading of pre-computed derangements from `cache/derangements/`
-- **Without Cache**: Graceful fallback to dynamic derangement generation
-- **Performance Impact**: Cache provides small startup time improvement (~0.3s faster)
-- **Independence**: Parallel processing works correctly with or without cache
+- **Automatic Integration**: Smart cache used transparently when available
+- **Performance Benefits**: 176x speedup on sign computations, 12x on derangement generation
+- **Graceful Fallback**: Dynamic generation when cache unavailable
+- **Zero Configuration**: Works automatically without user intervention
+
+For detailed information about the smart cache system, see [SMART_DERANGEMENT_CACHE.md](SMART_DERANGEMENT_CACHE.md).
 
 ## Checkpoint Status
 
@@ -218,7 +220,7 @@ The parallel processing feature builds on and integrates with existing optimizat
 - **Bitset Constraints**: Uses optimized O(1) constraint operations
 - **Lexicographic Generation**: Benefits from optimized permutation generation
 - **Batch Operations**: Leverages batch constraint methods for efficiency
-- **Derangement Cache**: Optional integration for faster startup
+- **Smart Derangement Cache**: Automatic integration for maximum performance (see [SMART_DERANGEMENT_CACHE.md](SMART_DERANGEMENT_CACHE.md))
 
 ## Conclusion
 

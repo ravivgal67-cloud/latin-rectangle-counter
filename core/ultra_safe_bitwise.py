@@ -644,6 +644,13 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
     if r != n - 1:
         raise ValueError(f"count_rectangles_with_completion_bitwise requires r = n-1, got r={r}, n={n}")
     
+    # Set up logging for completion optimization
+    import time
+    from core.logging_config import ProgressLogger
+    logger = ProgressLogger(f"completion_{r}_{n}")
+    start_time = time.time()
+    
+    logger.info(f"🔗 Using improved completion optimization: computing ({r},{n}) and ({r+1},{n}) together")
     print(f"   🔗 Using improved completion optimization: computing ({r},{n}) and ({r+1},{n}) together")
     
     # Get smart derangements with pre-computed signs
@@ -652,6 +659,8 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
     derangements_with_signs = cache.get_all_derangements_with_signs()
     num_derangements = len(derangements_with_signs)
     
+    logger.info(f"🚀 Using smart derangement cache: {num_derangements:,} derangements")
+    logger.info(f"🔢 Using bitwise operations for {num_derangements}-bit bitsets")
     print(f"   🚀 Using smart derangement cache: {num_derangements:,} derangements")
     print(f"   🔢 Using bitwise operations for {num_derangements}-bit bitsets")
     
@@ -886,7 +895,17 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
                     negative_r_plus_1 += 1
     
     elif r == 6:  # Computing (6,7) and (7,7)
+        logger.info(f"🔄 Starting computation for r=6 case: ({r},{n}) + ({r+1},{n})")
+        logger.info(f"   Processing {num_derangements:,} second-row derangements...")
+        
+        progress_interval = max(1, num_derangements // 20)  # Report every 5%
+        
         for second_idx in range(num_derangements):
+            if second_idx % progress_interval == 0:
+                progress_pct = (second_idx / num_derangements) * 100
+                logger.info(f"   Progress: {second_idx:,}/{num_derangements:,} ({progress_pct:.1f}%) - {total_r:,} rectangles found so far")
+                
+            second_row, second_sign = derangements_with_signs[second_idx]
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -969,7 +988,17 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
                                     negative_r_plus_1 += 1
     
     elif r == 7:  # Computing (7,8) and (8,8)
+        logger.info(f"🔄 Starting computation for r=7 case: ({r},{n}) + ({r+1},{n})")
+        logger.info(f"   Processing {num_derangements:,} second-row derangements...")
+        
+        progress_interval = max(1, num_derangements // 20)  # Report every 5%
+        
         for second_idx in range(num_derangements):
+            if second_idx % progress_interval == 0:
+                progress_pct = (second_idx / num_derangements) * 100
+                logger.info(f"   Progress: {second_idx:,}/{num_derangements:,} ({progress_pct:.1f}%) - {total_r:,} rectangles found so far")
+                
+            second_row, second_sign = derangements_with_signs[second_idx]
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -1065,7 +1094,17 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
                                         negative_r_plus_1 += 1
 
     elif r == 8:  # Computing (8,9) and (9,9)
+        logger.info(f"🔄 Starting computation for r=8 case: ({r},{n}) + ({r+1},{n})")
+        logger.info(f"   Processing {num_derangements:,} second-row derangements...")
+        
+        progress_interval = max(1, num_derangements // 20)  # Report every 5%
+        
         for second_idx in range(num_derangements):
+            if second_idx % progress_interval == 0:
+                progress_pct = (second_idx / num_derangements) * 100
+                logger.info(f"   Progress: {second_idx:,}/{num_derangements:,} ({progress_pct:.1f}%) - {total_r:,} rectangles found so far")
+                
+            second_row, second_sign = derangements_with_signs[second_idx]
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -1174,7 +1213,17 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
                                             negative_r_plus_1 += 1
 
     elif r == 9:  # Computing (9,10) and (10,10)
+        logger.info(f"🔄 Starting computation for r=9 case: ({r},{n}) + ({r+1},{n})")
+        logger.info(f"   Processing {num_derangements:,} second-row derangements...")
+        
+        progress_interval = max(1, num_derangements // 20)  # Report every 5%
+        
         for second_idx in range(num_derangements):
+            if second_idx % progress_interval == 0:
+                progress_pct = (second_idx / num_derangements) * 100
+                logger.info(f"   Progress: {second_idx:,}/{num_derangements:,} ({progress_pct:.1f}%) - {total_r:,} rectangles found so far")
+                
+            second_row, second_sign = derangements_with_signs[second_idx]
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -1297,6 +1346,23 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
     
     else:
         raise ValueError(f"Completion optimization v2 not implemented for r={r}, n={n}")
+    
+    # Log completion
+    elapsed_time = time.time() - start_time
+    logger.info(f"✅ COMPLETION OPTIMIZATION COMPLETE!")
+    logger.info(f"   Total time: {elapsed_time:.2f}s")
+    logger.info(f"   ({r},{n}): {total_r:,} rectangles (+{positive_r:,} -{negative_r:,})")
+    logger.info(f"   ({r+1},{n}): {total_r_plus_1:,} rectangles (+{positive_r_plus_1:,} -{negative_r_plus_1:,})")
+    logger.info(f"   Combined rate: {(total_r + total_r_plus_1)/elapsed_time:,.0f} rect/s")
+    
+    print(f"✅ COMPLETION OPTIMIZATION COMPLETE!")
+    print(f"   Total time: {elapsed_time:.2f}s")
+    print(f"   ({r},{n}): {total_r:,} rectangles (+{positive_r:,} -{negative_r:,})")
+    print(f"   ({r+1},{n}): {total_r_plus_1:,} rectangles (+{positive_r_plus_1:,} -{negative_r_plus_1:,})")
+    print(f"   Combined rate: {(total_r + total_r_plus_1)/elapsed_time:,.0f} rect/s")
+    
+    # Close the logger session
+    logger.close_session()
     
     return ((total_r, positive_r, negative_r), (total_r_plus_1, positive_r_plus_1, negative_r_plus_1))
 

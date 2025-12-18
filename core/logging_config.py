@@ -215,7 +215,7 @@ class ProgressLogger:
                          elapsed_time=elapsed,
                          final_results=final_results or {})
     
-    def start_progress_monitoring(self, interval_minutes: int = 10):
+    def start_progress_monitoring(self, interval_minutes: int = 1):
         """Start background thread for periodic progress updates."""
         if self.progress_thread is not None:
             return  # Already running

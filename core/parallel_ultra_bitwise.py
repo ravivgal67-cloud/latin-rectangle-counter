@@ -47,7 +47,7 @@ def count_rectangles_ultra_bitwise_partition(r: int, n: int,
     
     # Progress tracking
     last_progress_time = start_time
-    progress_interval = 600  # 10 minutes
+    progress_interval = 30  # 30 seconds - better for web monitoring
     processed_count = 0
     
     # Load smart derangements (cached, so fast)

@@ -41,7 +41,7 @@ def logged_process_second_row_partition(r: int, n: int, second_rows_data,
     
     # Progress tracking
     last_progress_time = start_time
-    progress_interval = 600  # 10 minutes in seconds
+    progress_interval = 30  # 30 seconds - better for web monitoring
     
     try:
         # Handle both legacy format and new format with pre-computed signs
@@ -191,7 +191,7 @@ def count_rectangles_parallel_logged(r: int, n: int, num_processes: Optional[int
     logger.info(f"🚀 Using row-based parallel processing with {num_processes} processes")
     
     # Start progress monitoring
-    logger.start_progress_monitoring(interval_minutes=10)
+    logger.start_progress_monitoring(interval_minutes=1)
     
     try:
         # Get all valid second rows with smart cache optimization

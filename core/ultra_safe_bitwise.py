@@ -695,7 +695,17 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
     
     # Implementation for r = 5 (computing (5,6) and (6,6))
     if r == 5:
+        logger.info(f"🔄 Starting computation for r=5 case: ({r},{n}) + ({r+1},{n})")
+        logger.info(f"   Processing {num_derangements:,} second-row derangements...")
+        
+        progress_interval = max(1, num_derangements // 20)  # Report every 5%
+        
         for second_idx in range(num_derangements):
+            if second_idx % progress_interval == 0:
+                progress_pct = (second_idx / num_derangements) * 100
+                logger.info(f"   Progress: {second_idx:,}/{num_derangements:,} ({progress_pct:.1f}%) - {total_r:,} rectangles found so far")
+                
+            second_row, second_sign = derangements_with_signs[second_idx]
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -765,7 +775,17 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
                                 negative_r_plus_1 += 1
     
     elif r == 4:  # Computing (4,5) and (5,5)
+        logger.info(f"🔄 Starting computation for r=4 case: ({r},{n}) + ({r+1},{n})")
+        logger.info(f"   Processing {num_derangements:,} second-row derangements...")
+        
+        progress_interval = max(1, num_derangements // 20)  # Report every 5%
+        
         for second_idx in range(num_derangements):
+            if second_idx % progress_interval == 0:
+                progress_pct = (second_idx / num_derangements) * 100
+                logger.info(f"   Progress: {second_idx:,}/{num_derangements:,} ({progress_pct:.1f}%) - {total_r:,} rectangles found so far")
+                
+            second_row, second_sign = derangements_with_signs[second_idx]
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -822,7 +842,17 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
                             negative_r_plus_1 += 1
     
     elif r == 3:  # Computing (3,4) and (4,4)
+        logger.info(f"🔄 Starting computation for r=3 case: ({r},{n}) + ({r+1},{n})")
+        logger.info(f"   Processing {num_derangements:,} second-row derangements...")
+        
+        progress_interval = max(1, num_derangements // 20)  # Report every 5%
+        
         for second_idx in range(num_derangements):
+            if second_idx % progress_interval == 0:
+                progress_pct = (second_idx / num_derangements) * 100
+                logger.info(f"   Progress: {second_idx:,}/{num_derangements:,} ({progress_pct:.1f}%) - {total_r:,} rectangles found so far")
+                
+            second_row, second_sign = derangements_with_signs[second_idx]
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -863,7 +893,17 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
                         negative_r_plus_1 += 1
     
     elif r == 2:  # Computing (2,3) and (3,3)
+        logger.info(f"🔄 Starting computation for r=2 case: ({r},{n}) + ({r+1},{n})")
+        logger.info(f"   Processing {num_derangements:,} second-row derangements...")
+        
+        progress_interval = max(1, num_derangements // 20)  # Report every 5%
+        
         for second_idx in range(num_derangements):
+            if second_idx % progress_interval == 0:
+                progress_pct = (second_idx / num_derangements) * 100
+                logger.info(f"   Progress: {second_idx:,}/{num_derangements:,} ({progress_pct:.1f}%) - {total_r:,} rectangles found so far")
+                
+            second_row, second_sign = derangements_with_signs[second_idx]
             second_row, second_sign = derangements_with_signs[second_idx]
             
             # Count for (2, 3) - this is a complete (2,3) rectangle

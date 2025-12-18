@@ -885,6 +885,416 @@ def count_rectangles_with_completion_bitwise(r: int, n: int) -> Tuple[Tuple[int,
                 else:
                     negative_r_plus_1 += 1
     
+    elif r == 6:  # Computing (6,7) and (7,7)
+        for second_idx in range(num_derangements):
+            second_row, second_sign = derangements_with_signs[second_idx]
+            third_row_valid = all_valid_mask
+            for pos in range(n):
+                third_row_valid &= ~conflict_masks[(pos, second_row[pos])]
+            
+            if third_row_valid == 0:
+                continue
+            
+            third_mask = third_row_valid
+            while third_mask:
+                third_idx = (third_mask & -third_mask).bit_length() - 1
+                third_mask &= third_mask - 1
+                third_row, third_sign = derangements_with_signs[third_idx]
+                
+                fourth_row_valid = third_row_valid
+                for pos in range(n):
+                    fourth_row_valid &= ~conflict_masks[(pos, third_row[pos])]
+                
+                if fourth_row_valid == 0:
+                    continue
+                
+                fourth_mask = fourth_row_valid
+                while fourth_mask:
+                    fourth_idx = (fourth_mask & -fourth_mask).bit_length() - 1
+                    fourth_mask &= fourth_mask - 1
+                    fourth_row, fourth_sign = derangements_with_signs[fourth_idx]
+                    
+                    fifth_row_valid = fourth_row_valid
+                    for pos in range(n):
+                        fifth_row_valid &= ~conflict_masks[(pos, fourth_row[pos])]
+                    
+                    if fifth_row_valid == 0:
+                        continue
+                    
+                    fifth_mask = fifth_row_valid
+                    while fifth_mask:
+                        fifth_idx = (fifth_mask & -fifth_mask).bit_length() - 1
+                        fifth_mask &= fifth_mask - 1
+                        fifth_row, fifth_sign = derangements_with_signs[fifth_idx]
+                        
+                        sixth_row_valid = fifth_row_valid
+                        for pos in range(n):
+                            sixth_row_valid &= ~conflict_masks[(pos, fifth_row[pos])]
+                        
+                        if sixth_row_valid == 0:
+                            continue
+                        
+                        sixth_mask = sixth_row_valid
+                        while sixth_mask:
+                            sixth_idx = (sixth_mask & -sixth_mask).bit_length() - 1
+                            sixth_mask &= sixth_mask - 1
+                            sixth_row, sixth_sign = derangements_with_signs[sixth_idx]
+                            
+                            # Count for (6, 7) - this is a complete (6,7) rectangle
+                            rectangle_sign_r = first_sign * second_sign * third_sign * fourth_sign * fifth_sign * sixth_sign
+                            total_r += 1
+                            if rectangle_sign_r > 0:
+                                positive_r += 1
+                            else:
+                                negative_r += 1
+                            
+                            # Now compute valid seventh rows (for completion to (7,7))
+                            seventh_row_valid = sixth_row_valid
+                            for pos in range(n):
+                                seventh_row_valid &= ~conflict_masks[(pos, sixth_row[pos])]
+                            
+                            # Count all valid seventh rows
+                            seventh_mask = seventh_row_valid
+                            while seventh_mask:
+                                seventh_idx = (seventh_mask & -seventh_mask).bit_length() - 1
+                                seventh_mask &= seventh_mask - 1
+                                _, seventh_sign = derangements_with_signs[seventh_idx]
+                                
+                                # Count for (7, 7) - this is the completed rectangle
+                                rectangle_sign_r_plus_1 = rectangle_sign_r * seventh_sign
+                                total_r_plus_1 += 1
+                                if rectangle_sign_r_plus_1 > 0:
+                                    positive_r_plus_1 += 1
+                                else:
+                                    negative_r_plus_1 += 1
+    
+    elif r == 7:  # Computing (7,8) and (8,8)
+        for second_idx in range(num_derangements):
+            second_row, second_sign = derangements_with_signs[second_idx]
+            third_row_valid = all_valid_mask
+            for pos in range(n):
+                third_row_valid &= ~conflict_masks[(pos, second_row[pos])]
+            
+            if third_row_valid == 0:
+                continue
+            
+            third_mask = third_row_valid
+            while third_mask:
+                third_idx = (third_mask & -third_mask).bit_length() - 1
+                third_mask &= third_mask - 1
+                third_row, third_sign = derangements_with_signs[third_idx]
+                
+                fourth_row_valid = third_row_valid
+                for pos in range(n):
+                    fourth_row_valid &= ~conflict_masks[(pos, third_row[pos])]
+                
+                if fourth_row_valid == 0:
+                    continue
+                
+                fourth_mask = fourth_row_valid
+                while fourth_mask:
+                    fourth_idx = (fourth_mask & -fourth_mask).bit_length() - 1
+                    fourth_mask &= fourth_mask - 1
+                    fourth_row, fourth_sign = derangements_with_signs[fourth_idx]
+                    
+                    fifth_row_valid = fourth_row_valid
+                    for pos in range(n):
+                        fifth_row_valid &= ~conflict_masks[(pos, fourth_row[pos])]
+                    
+                    if fifth_row_valid == 0:
+                        continue
+                    
+                    fifth_mask = fifth_row_valid
+                    while fifth_mask:
+                        fifth_idx = (fifth_mask & -fifth_mask).bit_length() - 1
+                        fifth_mask &= fifth_mask - 1
+                        fifth_row, fifth_sign = derangements_with_signs[fifth_idx]
+                        
+                        sixth_row_valid = fifth_row_valid
+                        for pos in range(n):
+                            sixth_row_valid &= ~conflict_masks[(pos, fifth_row[pos])]
+                        
+                        if sixth_row_valid == 0:
+                            continue
+                        
+                        sixth_mask = sixth_row_valid
+                        while sixth_mask:
+                            sixth_idx = (sixth_mask & -sixth_mask).bit_length() - 1
+                            sixth_mask &= sixth_mask - 1
+                            sixth_row, sixth_sign = derangements_with_signs[sixth_idx]
+                            
+                            seventh_row_valid = sixth_row_valid
+                            for pos in range(n):
+                                seventh_row_valid &= ~conflict_masks[(pos, sixth_row[pos])]
+                            
+                            if seventh_row_valid == 0:
+                                continue
+                            
+                            seventh_mask = seventh_row_valid
+                            while seventh_mask:
+                                seventh_idx = (seventh_mask & -seventh_mask).bit_length() - 1
+                                seventh_mask &= seventh_mask - 1
+                                seventh_row, seventh_sign = derangements_with_signs[seventh_idx]
+                                
+                                # Count for (7, 8) - this is a complete (7,8) rectangle
+                                rectangle_sign_r = first_sign * second_sign * third_sign * fourth_sign * fifth_sign * sixth_sign * seventh_sign
+                                total_r += 1
+                                if rectangle_sign_r > 0:
+                                    positive_r += 1
+                                else:
+                                    negative_r += 1
+                                
+                                # Now compute valid eighth rows (for completion to (8,8))
+                                eighth_row_valid = seventh_row_valid
+                                for pos in range(n):
+                                    eighth_row_valid &= ~conflict_masks[(pos, seventh_row[pos])]
+                                
+                                # Count all valid eighth rows
+                                eighth_mask = eighth_row_valid
+                                while eighth_mask:
+                                    eighth_idx = (eighth_mask & -eighth_mask).bit_length() - 1
+                                    eighth_mask &= eighth_mask - 1
+                                    _, eighth_sign = derangements_with_signs[eighth_idx]
+                                    
+                                    # Count for (8, 8) - this is the completed rectangle
+                                    rectangle_sign_r_plus_1 = rectangle_sign_r * eighth_sign
+                                    total_r_plus_1 += 1
+                                    if rectangle_sign_r_plus_1 > 0:
+                                        positive_r_plus_1 += 1
+                                    else:
+                                        negative_r_plus_1 += 1
+
+    elif r == 8:  # Computing (8,9) and (9,9)
+        for second_idx in range(num_derangements):
+            second_row, second_sign = derangements_with_signs[second_idx]
+            third_row_valid = all_valid_mask
+            for pos in range(n):
+                third_row_valid &= ~conflict_masks[(pos, second_row[pos])]
+            
+            if third_row_valid == 0:
+                continue
+            
+            third_mask = third_row_valid
+            while third_mask:
+                third_idx = (third_mask & -third_mask).bit_length() - 1
+                third_mask &= third_mask - 1
+                third_row, third_sign = derangements_with_signs[third_idx]
+                
+                fourth_row_valid = third_row_valid
+                for pos in range(n):
+                    fourth_row_valid &= ~conflict_masks[(pos, third_row[pos])]
+                
+                if fourth_row_valid == 0:
+                    continue
+                
+                fourth_mask = fourth_row_valid
+                while fourth_mask:
+                    fourth_idx = (fourth_mask & -fourth_mask).bit_length() - 1
+                    fourth_mask &= fourth_mask - 1
+                    fourth_row, fourth_sign = derangements_with_signs[fourth_idx]
+                    
+                    fifth_row_valid = fourth_row_valid
+                    for pos in range(n):
+                        fifth_row_valid &= ~conflict_masks[(pos, fourth_row[pos])]
+                    
+                    if fifth_row_valid == 0:
+                        continue
+                    
+                    fifth_mask = fifth_row_valid
+                    while fifth_mask:
+                        fifth_idx = (fifth_mask & -fifth_mask).bit_length() - 1
+                        fifth_mask &= fifth_mask - 1
+                        fifth_row, fifth_sign = derangements_with_signs[fifth_idx]
+                        
+                        sixth_row_valid = fifth_row_valid
+                        for pos in range(n):
+                            sixth_row_valid &= ~conflict_masks[(pos, fifth_row[pos])]
+                        
+                        if sixth_row_valid == 0:
+                            continue
+                        
+                        sixth_mask = sixth_row_valid
+                        while sixth_mask:
+                            sixth_idx = (sixth_mask & -sixth_mask).bit_length() - 1
+                            sixth_mask &= sixth_mask - 1
+                            sixth_row, sixth_sign = derangements_with_signs[sixth_idx]
+                            
+                            seventh_row_valid = sixth_row_valid
+                            for pos in range(n):
+                                seventh_row_valid &= ~conflict_masks[(pos, sixth_row[pos])]
+                            
+                            if seventh_row_valid == 0:
+                                continue
+                            
+                            seventh_mask = seventh_row_valid
+                            while seventh_mask:
+                                seventh_idx = (seventh_mask & -seventh_mask).bit_length() - 1
+                                seventh_mask &= seventh_mask - 1
+                                seventh_row, seventh_sign = derangements_with_signs[seventh_idx]
+                                
+                                eighth_row_valid = seventh_row_valid
+                                for pos in range(n):
+                                    eighth_row_valid &= ~conflict_masks[(pos, seventh_row[pos])]
+                                
+                                if eighth_row_valid == 0:
+                                    continue
+                                
+                                eighth_mask = eighth_row_valid
+                                while eighth_mask:
+                                    eighth_idx = (eighth_mask & -eighth_mask).bit_length() - 1
+                                    eighth_mask &= eighth_mask - 1
+                                    eighth_row, eighth_sign = derangements_with_signs[eighth_idx]
+                                    
+                                    # Count for (8, 9) - this is a complete (8,9) rectangle
+                                    rectangle_sign_r = first_sign * second_sign * third_sign * fourth_sign * fifth_sign * sixth_sign * seventh_sign * eighth_sign
+                                    total_r += 1
+                                    if rectangle_sign_r > 0:
+                                        positive_r += 1
+                                    else:
+                                        negative_r += 1
+                                    
+                                    # Now compute valid ninth rows (for completion to (9,9))
+                                    ninth_row_valid = eighth_row_valid
+                                    for pos in range(n):
+                                        ninth_row_valid &= ~conflict_masks[(pos, eighth_row[pos])]
+                                    
+                                    # Count all valid ninth rows
+                                    ninth_mask = ninth_row_valid
+                                    while ninth_mask:
+                                        ninth_idx = (ninth_mask & -ninth_mask).bit_length() - 1
+                                        ninth_mask &= ninth_mask - 1
+                                        _, ninth_sign = derangements_with_signs[ninth_idx]
+                                        
+                                        # Count for (9, 9) - this is the completed rectangle
+                                        rectangle_sign_r_plus_1 = rectangle_sign_r * ninth_sign
+                                        total_r_plus_1 += 1
+                                        if rectangle_sign_r_plus_1 > 0:
+                                            positive_r_plus_1 += 1
+                                        else:
+                                            negative_r_plus_1 += 1
+
+    elif r == 9:  # Computing (9,10) and (10,10)
+        for second_idx in range(num_derangements):
+            second_row, second_sign = derangements_with_signs[second_idx]
+            third_row_valid = all_valid_mask
+            for pos in range(n):
+                third_row_valid &= ~conflict_masks[(pos, second_row[pos])]
+            
+            if third_row_valid == 0:
+                continue
+            
+            third_mask = third_row_valid
+            while third_mask:
+                third_idx = (third_mask & -third_mask).bit_length() - 1
+                third_mask &= third_mask - 1
+                third_row, third_sign = derangements_with_signs[third_idx]
+                
+                fourth_row_valid = third_row_valid
+                for pos in range(n):
+                    fourth_row_valid &= ~conflict_masks[(pos, third_row[pos])]
+                
+                if fourth_row_valid == 0:
+                    continue
+                
+                fourth_mask = fourth_row_valid
+                while fourth_mask:
+                    fourth_idx = (fourth_mask & -fourth_mask).bit_length() - 1
+                    fourth_mask &= fourth_mask - 1
+                    fourth_row, fourth_sign = derangements_with_signs[fourth_idx]
+                    
+                    fifth_row_valid = fourth_row_valid
+                    for pos in range(n):
+                        fifth_row_valid &= ~conflict_masks[(pos, fourth_row[pos])]
+                    
+                    if fifth_row_valid == 0:
+                        continue
+                    
+                    fifth_mask = fifth_row_valid
+                    while fifth_mask:
+                        fifth_idx = (fifth_mask & -fifth_mask).bit_length() - 1
+                        fifth_mask &= fifth_mask - 1
+                        fifth_row, fifth_sign = derangements_with_signs[fifth_idx]
+                        
+                        sixth_row_valid = fifth_row_valid
+                        for pos in range(n):
+                            sixth_row_valid &= ~conflict_masks[(pos, fifth_row[pos])]
+                        
+                        if sixth_row_valid == 0:
+                            continue
+                        
+                        sixth_mask = sixth_row_valid
+                        while sixth_mask:
+                            sixth_idx = (sixth_mask & -sixth_mask).bit_length() - 1
+                            sixth_mask &= sixth_mask - 1
+                            sixth_row, sixth_sign = derangements_with_signs[sixth_idx]
+                            
+                            seventh_row_valid = sixth_row_valid
+                            for pos in range(n):
+                                seventh_row_valid &= ~conflict_masks[(pos, sixth_row[pos])]
+                            
+                            if seventh_row_valid == 0:
+                                continue
+                            
+                            seventh_mask = seventh_row_valid
+                            while seventh_mask:
+                                seventh_idx = (seventh_mask & -seventh_mask).bit_length() - 1
+                                seventh_mask &= seventh_mask - 1
+                                seventh_row, seventh_sign = derangements_with_signs[seventh_idx]
+                                
+                                eighth_row_valid = seventh_row_valid
+                                for pos in range(n):
+                                    eighth_row_valid &= ~conflict_masks[(pos, seventh_row[pos])]
+                                
+                                if eighth_row_valid == 0:
+                                    continue
+                                
+                                eighth_mask = eighth_row_valid
+                                while eighth_mask:
+                                    eighth_idx = (eighth_mask & -eighth_mask).bit_length() - 1
+                                    eighth_mask &= eighth_mask - 1
+                                    eighth_row, eighth_sign = derangements_with_signs[eighth_idx]
+                                    
+                                    ninth_row_valid = eighth_row_valid
+                                    for pos in range(n):
+                                        ninth_row_valid &= ~conflict_masks[(pos, eighth_row[pos])]
+                                    
+                                    if ninth_row_valid == 0:
+                                        continue
+                                    
+                                    ninth_mask = ninth_row_valid
+                                    while ninth_mask:
+                                        ninth_idx = (ninth_mask & -ninth_mask).bit_length() - 1
+                                        ninth_mask &= ninth_mask - 1
+                                        ninth_row, ninth_sign = derangements_with_signs[ninth_idx]
+                                        
+                                        # Count for (9, 10) - this is a complete (9,10) rectangle
+                                        rectangle_sign_r = first_sign * second_sign * third_sign * fourth_sign * fifth_sign * sixth_sign * seventh_sign * eighth_sign * ninth_sign
+                                        total_r += 1
+                                        if rectangle_sign_r > 0:
+                                            positive_r += 1
+                                        else:
+                                            negative_r += 1
+                                        
+                                        # Now compute valid tenth rows (for completion to (10,10))
+                                        tenth_row_valid = ninth_row_valid
+                                        for pos in range(n):
+                                            tenth_row_valid &= ~conflict_masks[(pos, ninth_row[pos])]
+                                        
+                                        # Count all valid tenth rows
+                                        tenth_mask = tenth_row_valid
+                                        while tenth_mask:
+                                            tenth_idx = (tenth_mask & -tenth_mask).bit_length() - 1
+                                            tenth_mask &= tenth_mask - 1
+                                            _, tenth_sign = derangements_with_signs[tenth_idx]
+                                            
+                                            # Count for (10, 10) - this is the completed rectangle
+                                            rectangle_sign_r_plus_1 = rectangle_sign_r * tenth_sign
+                                            total_r_plus_1 += 1
+                                            if rectangle_sign_r_plus_1 > 0:
+                                                positive_r_plus_1 += 1
+                                            else:
+                                                negative_r_plus_1 += 1
+    
     else:
         raise ValueError(f"Completion optimization v2 not implemented for r={r}, n={n}")
     

@@ -203,8 +203,8 @@ def count_rectangles_parallel_ultra_bitwise(r: int, n: int,
     start_time = time.time()
     
     # Set up main session logger
-    from core.logging_config import get_logger
-    logger = get_logger(f"parallel_{r}_{n}")
+    from core.logging_config import ProgressLogger
+    logger = ProgressLogger(f"parallel_{r}_{n}")
     
     # Auto-detect optimal process count
     if num_processes is None:
@@ -324,6 +324,9 @@ def count_rectangles_parallel_ultra_bitwise(r: int, n: int,
         logger.info(f"   Parallel efficiency: {efficiency:.1f}%")
         print(f"   Parallel speedup: {speedup:.2f}x")
         print(f"   Parallel efficiency: {efficiency:.1f}%")
+    
+    # Close the logger session
+    logger.close_session()
     
     return CountResult(
         r=r, n=n,

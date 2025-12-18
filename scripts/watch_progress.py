@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """
-Watch live computation progress from the database.
+Watch live computation progress from log files.
 Usage: python watch_progress.py [--loop]
 """
 
-import sqlite3
 import time
 import sys
 from datetime import datetime
+import os
+import sys
 
-DB_PATH = 'latin_rectangles.db'
+# Add the parent directory to the path so we can import core modules
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from core.log_progress_reader import get_progress_from_logs, is_computation_active
 
 def format_number(n):
     """Format number with commas."""
@@ -22,9 +26,9 @@ def clear_lines(n):
         sys.stdout.write('\033[K')  # Clear line
 
 def watch_progress(loop=False):
-    """Monitor the progress table in real-time."""
+    """Monitor computation progress from log files in real-time."""
     if loop:
-        print("Watching Latin Rectangle Counter progress...")
+        print("Watching Latin Rectangle Counter progress from logs...")
         print("Press Ctrl+C to stop\n")
     
     lines_printed = 0
@@ -38,33 +42,40 @@ def watch_progress(loop=False):
             lines_printed = 0
             
             try:
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
+                # Get progress from log files
+                progress_entries = get_progress_from_logs()
+                active = is_computation_active()
                 
-                # Query the progress table
-                cursor.execute('''
-                    SELECT r, n, rectangles_scanned, positive_count, negative_count, 
-                           is_complete, updated_at 
-                    FROM progress
-                ''')
-                rows = cursor.fetchall()
-                
-                if rows:
-                    header = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Active Computations:"
+                if progress_entries:
+                    header = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Computations from Logs:"
                     print(header)
                     lines_printed += 1
+                    
+                    if active:
+                        print("🔄 Active computations detected")
+                        lines_printed += 1
+                    else:
+                        print("💤 No recent activity (computations may be complete)")
+                        lines_printed += 1
                     
                     separator = "=" * 90
                     print(separator)
                     lines_printed += 1
                     
-                    for row in rows:
-                        r, n, scanned, pos, neg, complete, updated_at = row
+                    for entry in progress_entries:
+                        r = entry['r']
+                        n = entry['n']
+                        scanned = entry['rectangles_scanned']
+                        pos = entry['positive_count']
+                        neg = entry['negative_count']
+                        complete = entry['is_complete']
+                        updated_at = entry['last_update']
+                        process_id = entry['process_id']
                         
-                        status = "✓ COMPLETE" if complete else "⏳ COMPUTING"
+                        status = "✅ COMPLETE" if complete else "⏳ COMPUTING"
                         diff = pos - neg
                         
-                        print(f"\n({r},{n}): {status}")
+                        print(f"\n({r},{n}): {status} [{process_id}]")
                         lines_printed += 2
                         print(f"  Scanned:  {format_number(scanned)}")
                         lines_printed += 1
@@ -76,18 +87,18 @@ def watch_progress(loop=False):
                         lines_printed += 1
                         print(f"  Updated:  {updated_at}")
                         lines_printed += 1
+                        
+                        # Show progress percentage if available
+                        if 'progress_pct' in entry:
+                            print(f"  Progress: {entry['progress_pct']:.1f}%")
+                            lines_printed += 1
                 else:
-                    msg = f"[{datetime.now().strftime('%H:%M:%S')}] No active computations in progress table"
+                    msg = f"[{datetime.now().strftime('%H:%M:%S')}] No computation logs found"
                     print(msg)
                     lines_printed += 1
                 
-                conn.close()
-                
-            except sqlite3.Error as e:
-                print(f"Database error: {e}")
-                lines_printed += 1
             except Exception as e:
-                print(f"Error: {e}")
+                print(f"Error reading logs: {e}")
                 lines_printed += 1
             
             if not loop:

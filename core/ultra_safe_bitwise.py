@@ -21,6 +21,14 @@ def count_rectangles_ultra_safe_bitwise(r: int, n: int) -> Tuple[int, int, int]:
     Hybrid approach: explicit loops for r≤6, parametrized for r≥7.
     """
     
+    # Validate parameters before expensive operations
+    if r < 2:
+        raise ValueError(f"r must be >= 2, got r={r}")
+    if r > n:
+        raise ValueError(f"r must be <= n, got r={r}, n={n}")
+    if r > 10:
+        raise NotImplementedError(f"Ultra-safe bitwise implementation only supports r <= 10, got r={r}")
+    
     # Get smart derangements with pre-computed signs
     # Use get_smart_derangement_cache to avoid double-loading
     from core.smart_derangement_cache import get_smart_derangement_cache

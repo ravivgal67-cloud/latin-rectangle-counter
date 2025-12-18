@@ -94,28 +94,14 @@ class ProgressTracker:
         self.rectangles_scanned += scanned_delta
         self.update_counter += 1
         
-        # Write to database every 100 updates to avoid too many writes
-        if self.cache_manager and self.update_counter % 100 == 0:
-            self.cache_manager.update_progress(
-                self.current_r, self.current_n,
-                self.rectangles_scanned,
-                self.positive_count, self.negative_count,
-                is_complete=False
-            )
+        # Progress is now tracked via log files (see core/log_progress_reader.py)
         
         self._notify()
     
     def complete_dimension(self):
         """Mark the current dimension as complete."""
         if self.current_r is not None and self.current_n is not None:
-            # Write final state to database
-            if self.cache_manager:
-                self.cache_manager.update_progress(
-                    self.current_r, self.current_n,
-                    self.rectangles_scanned,
-                    self.positive_count, self.negative_count,
-                    is_complete=True
-                )
+            # Progress completion is now tracked via log files
             self._notify(is_complete=True)
     
     def set_callback(self, callback):

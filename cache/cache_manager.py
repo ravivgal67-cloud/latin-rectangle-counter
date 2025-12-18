@@ -109,19 +109,7 @@ class CacheManager:
             CREATE INDEX IF NOT EXISTS idx_n ON results(n)
         """)
         
-        # Create progress table for tracking ongoing computations
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS progress (
-                r INTEGER NOT NULL,
-                n INTEGER NOT NULL,
-                rectangles_scanned INTEGER NOT NULL,
-                positive_count INTEGER NOT NULL,
-                negative_count INTEGER NOT NULL,
-                is_complete INTEGER NOT NULL DEFAULT 0,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (r, n)
-            )
-        """)
+        # Progress tracking is now handled by log files (see core/log_progress_reader.py)
         
         # Create checkpoints table for resumable computations
         cursor.execute("""
@@ -297,65 +285,7 @@ class CacheManager:
         
         return results
     
-    def update_progress(self, r: int, n: int, rectangles_scanned: int, 
-                       positive_count: int, negative_count: int, is_complete: bool = False):
-        """
-        Update progress for a computation.
-        
-        Args:
-            r: Number of rows
-            n: Number of columns
-            rectangles_scanned: Number of rectangles scanned so far
-            positive_count: Count of positive rectangles found
-            negative_count: Count of negative rectangles found
-            is_complete: Whether computation is complete
-        """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT OR REPLACE INTO progress 
-            (r, n, rectangles_scanned, positive_count, negative_count, is_complete, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        """, (r, n, rectangles_scanned, positive_count, negative_count, 1 if is_complete else 0))
-        
-        conn.commit()
-    
-    def get_all_progress(self):
-        """
-        Get all current progress entries.
-        
-        Returns:
-            List of dictionaries with progress information
-        """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT r, n, rectangles_scanned, positive_count, negative_count, is_complete
-            FROM progress
-            ORDER BY n, r
-        """)
-        
-        results = []
-        for row in cursor.fetchall():
-            results.append({
-                'r': row['r'],
-                'n': row['n'],
-                'rectangles_scanned': row['rectangles_scanned'],
-                'positive_count': row['positive_count'],
-                'negative_count': row['negative_count'],
-                'is_complete': bool(row['is_complete'])
-            })
-        
-        return results
-    
-    def clear_progress(self):
-        """Clear all progress entries."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM progress")
-        conn.commit()
+    # Progress tracking methods removed - now handled by log files (see core/log_progress_reader.py)
     
     def save_checkpoint(self, r: int, n: int, partial_rows: List[List[int]], 
                        positive_count: int, negative_count: int, 

@@ -181,8 +181,7 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
             
             cache_manager = app.config['CACHE_MANAGER']
             
-            # Clear old progress and set up progress tracking
-            cache_manager.clear_progress()
+            # Set up progress tracking (now handled by log files)
             from core.progress import ProgressTracker
             progress_tracker = ProgressTracker(cache_manager)
             
@@ -312,18 +311,21 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
     @app.route('/api/progress', methods=['GET'])
     def api_progress():
         """
-        Get current progress for ongoing computations.
+        Get current progress for ongoing computations by reading log files.
         
         Returns:
-            JSON with list of progress entries
+            JSON with list of progress entries from log files
         """
         try:
-            cache_manager = app.config['CACHE_MANAGER']
-            progress_data = cache_manager.get_all_progress()
+            from core.log_progress_reader import get_progress_from_logs, is_computation_active
+            
+            progress_data = get_progress_from_logs()
+            active = is_computation_active()
             
             return jsonify({
                 'status': 'success',
-                'progress': progress_data
+                'progress': progress_data,
+                'has_active_computations': active
             }), 200
         except Exception as e:
             app.logger.error(f"Error in /api/progress: {e}")

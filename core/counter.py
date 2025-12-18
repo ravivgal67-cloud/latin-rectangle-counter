@@ -217,18 +217,36 @@ def count_for_n(n: int, cache_manager: Optional['CacheManager'] = None, progress
     n_minus_1_cached = cache_manager.get(n - 1, n) if cache_manager and n > 2 else None
     n_n_cached = cache_manager.get(n, n) if cache_manager else None
     
-    # Disable the old slow completion optimization - use fast auto-counter instead
-    use_optimization = False
+    # Use completion optimization when both (n-1, n) and (n, n) need to be computed
+    # Only enable if neither is cached and n >= 3 (so n-1 >= 2)
+    use_optimization = (n >= 3 and 
+                       (cache_manager is None or (n_minus_1_cached is None and n_n_cached is None)))
     
     # Compute r from 2 to n
     for r in range(2, n + 1):
         # Special case: use optimization for (n-1, n) when applicable
         if r == n - 1 and use_optimization:
             import time
+            from core.ultra_safe_bitwise import count_rectangles_with_completion_bitwise
             # Compute both (n-1, n) and (n, n) together
             start_time = time.time()
-            result_n_minus_1, result_n = count_nlr_with_completion(n - 1, n, progress_tracker)
+            (total_n_minus_1, pos_n_minus_1, neg_n_minus_1), (total_n, pos_n, neg_n) = \
+                count_rectangles_with_completion_bitwise(n - 1, n)
             elapsed = time.time() - start_time
+            
+            # Create CountResult objects
+            result_n_minus_1 = CountResult(
+                r=n-1, n=n, 
+                positive_count=pos_n_minus_1, 
+                negative_count=neg_n_minus_1, 
+                difference=pos_n_minus_1 - neg_n_minus_1
+            )
+            result_n = CountResult(
+                r=n, n=n,
+                positive_count=pos_n,
+                negative_count=neg_n,
+                difference=pos_n - neg_n
+            )
             
             # Set computation time for both results (they were computed together)
             result_n_minus_1.computation_time = elapsed

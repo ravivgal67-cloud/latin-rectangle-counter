@@ -121,75 +121,7 @@ class LatinRectangle:
 
 
 
-def generate_normalized_rectangles_resumable(r: int, n: int, 
-                                           start_from: List[List[int]] = None) -> Iterator[LatinRectangle]:
-    """
-    Generate all normalized Latin rectangles of dimension r×n with resume capability.
-    
-    A normalized Latin rectangle has:
-    - First row as the identity permutation [1, 2, 3, ..., n]
-    - Each subsequent row is a valid permutation with no column conflicts
-    
-    This function uses backtracking to recursively build valid rectangles,
-    tracking column constraints to ensure no duplicates in any column.
-    
-    Args:
-        r: Number of rows (2 ≤ r ≤ n)
-        n: Number of columns (n ≥ 2)
-        start_from: Partial rectangle to resume from (None = start fresh)
-        
-    Yields:
-        LatinRectangle objects representing all valid normalized rectangles
-        
-    Examples:
-        >>> # Generate all 2×2 normalized Latin rectangles
-        >>> rects = list(generate_normalized_rectangles_resumable(2, 2))
-        >>> len(rects)
-        1
-        >>> rects[0].data
-        [[1, 2], [2, 1]]
-        
-        >>> # Resume from partial rectangle
-        >>> partial = [[1, 2, 3], [2, 3, 1]]
-        >>> rects = list(generate_normalized_rectangles_resumable(3, 3, partial))
-        >>> # Will generate rectangles starting from the partial state
-    """
-    def backtrack(rows: List[List[int]]) -> Iterator[LatinRectangle]:
-        """
-        Recursively build normalized Latin rectangles.
-        
-        Args:
-            rows: Current list of rows built so far
-            
-        Yields:
-            Complete LatinRectangle objects when r rows are built
-        """
-        # Base case: we've built all r rows
-        if len(rows) == r:
-            yield LatinRectangle(r, n, [row.copy() for row in rows])
-            return
-        
-        # Build forbidden set for each position based on existing rows
-        forbidden = [set() for _ in range(n)]
-        for row in rows:
-            for col_idx, value in enumerate(row):
-                forbidden[col_idx].add(value)
-        
-        # Generate all valid next rows using constrained permutation generator
-        for next_row in generate_constrained_permutations(n, forbidden):
-            rows.append(next_row)
-            yield from backtrack(rows)
-            rows.pop()
-    
-    # Start from checkpoint or fresh
-    if start_from is None:
-        # Start with identity first row
-        start_rows = [list(range(1, n + 1))]
-    else:
-        # Resume from checkpoint
-        start_rows = [row.copy() for row in start_from]
-    
-    yield from backtrack(start_rows)
+# Old generator functions removed - use ultra-safe bitwise system instead
 
 
 def generate_normalized_rectangles(r: int, n: int) -> Iterator[LatinRectangle]:

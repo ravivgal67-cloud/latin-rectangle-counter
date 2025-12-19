@@ -227,11 +227,11 @@ def count_for_n(n: int, cache_manager: Optional['CacheManager'] = None, progress
         # Special case: use optimization for (n-1, n) when applicable
         if r == n - 1 and use_optimization:
             import time
-            from core.ultra_safe_bitwise import count_rectangles_with_completion_bitwise
-            # Compute both (n-1, n) and (n, n) together
+            from core.parallel_completion_optimization import count_rectangles_with_completion_parallel
+            # Compute both (n-1, n) and (n, n) together using parallel completion optimization
             start_time = time.time()
             (total_n_minus_1, pos_n_minus_1, neg_n_minus_1), (total_n, pos_n, neg_n) = \
-                count_rectangles_with_completion_bitwise(n - 1, n)
+                count_rectangles_with_completion_parallel(n - 1, n)
             elapsed = time.time() - start_time
             
             # Create CountResult objects

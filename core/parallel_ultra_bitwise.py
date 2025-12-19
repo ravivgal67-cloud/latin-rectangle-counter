@@ -185,7 +185,8 @@ def count_rectangles_ultra_bitwise_partition(r: int, n: int,
 
 
 def count_rectangles_parallel_ultra_bitwise(r: int, n: int, 
-                                            num_processes: Optional[int] = None) -> CountResult:
+                                            num_processes: Optional[int] = None,
+                                            logger_session: Optional[str] = None) -> CountResult:
     """
     Count Latin rectangles using parallel ultra-safe bitwise processing.
     
@@ -196,6 +197,7 @@ def count_rectangles_parallel_ultra_bitwise(r: int, n: int,
         r: Number of rows
         n: Number of columns
         num_processes: Number of processes to use (None = auto-detect)
+        logger_session: Custom session name for logging (None = auto-generate)
         
     Returns:
         CountResult with computation results
@@ -204,7 +206,9 @@ def count_rectangles_parallel_ultra_bitwise(r: int, n: int,
     
     # Set up main session logger
     from core.logging_config import ProgressLogger
-    logger = ProgressLogger(f"parallel_{r}_{n}")
+    if logger_session is None:
+        logger_session = f"parallel_{r}_{n}"
+    logger = ProgressLogger(logger_session)
     
     # Auto-detect optimal process count
     if num_processes is None:
@@ -255,7 +259,7 @@ def count_rectangles_parallel_ultra_bitwise(r: int, n: int,
         for i, partition_indices in enumerate(partitions):
             future = executor.submit(
                 count_rectangles_ultra_bitwise_partition,
-                r, n, partition_indices, i, f"parallel_{r}_{n}"
+                r, n, partition_indices, i, logger_session
             )
             futures.append((i, future))
         

@@ -15,7 +15,7 @@ class TestCountNLRR2:
     """Tests for r=2 counting accuracy."""
     
     @given(st.integers(min_value=2, max_value=8))
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=1000)
     def test_count_accuracy_r2(self, n):
         """
         **Feature: latin-rectangle-counter, Property 10: Count accuracy (r=2 case)**

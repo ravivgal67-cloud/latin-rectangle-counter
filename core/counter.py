@@ -252,6 +252,39 @@ def count_for_n(n: int, cache_manager: Optional['CacheManager'] = None, progress
             result_n_minus_1.computation_time = elapsed
             result_n.computation_time = elapsed
             
+            # MATHEMATICAL VERIFICATION: Test our proven theorem and hypothesis
+            # 
+            # This verification implements two key mathematical results:
+            # 1. PROVEN THEOREM: NLR(n-1, n) = NLR(n, n) (bijection proof in docs/nlr_n_minus_1_n_equality_and_parity.md)
+            # 2. PARITY CONJECTURE: Sign distribution behavior depends on parity of n (computational evidence)
+            
+            # Theorem: NLR(n-1, n) = NLR(n, n) (total count equality)
+            total_n_minus_1 = result_n_minus_1.positive_count + result_n_minus_1.negative_count
+            total_n_n = result_n.positive_count + result_n.negative_count
+            assert total_n_minus_1 == total_n_n, \
+                f"THEOREM VIOLATION: NLR({n-1},{n}) = {total_n_minus_1} ≠ {total_n_n} = NLR({n},{n}). " \
+                f"This contradicts our proven bijection theorem!"
+            
+            # Parity Hypothesis: Sign distribution behavior depends on parity of n
+            if n % 2 == 1:  # Odd n
+                # Hypothesis: For odd n, positive and negative counts should be preserved
+                pos_equal = result_n_minus_1.positive_count == result_n.positive_count
+                neg_equal = result_n_minus_1.negative_count == result_n.negative_count
+                assert pos_equal and neg_equal, \
+                    f"PARITY HYPOTHESIS VIOLATION (odd n={n}): Expected equal pos/neg counts. " \
+                    f"NLR({n-1},{n}): pos={result_n_minus_1.positive_count}, neg={result_n_minus_1.negative_count}. " \
+                    f"NLR({n},{n}): pos={result_n.positive_count}, neg={result_n.negative_count}. " \
+                    f"This contradicts our parity conjecture for odd n!"
+            else:  # Even n
+                # Hypothesis: For even n, positive and negative counts should differ
+                pos_equal = result_n_minus_1.positive_count == result_n.positive_count
+                neg_equal = result_n_minus_1.negative_count == result_n.negative_count
+                assert not (pos_equal and neg_equal), \
+                    f"PARITY HYPOTHESIS VIOLATION (even n={n}): Expected different pos/neg counts. " \
+                    f"NLR({n-1},{n}): pos={result_n_minus_1.positive_count}, neg={result_n_minus_1.negative_count}. " \
+                    f"NLR({n},{n}): pos={result_n.positive_count}, neg={result_n.negative_count}. " \
+                    f"This contradicts our parity conjecture for even n!"
+            
             # Store both in cache
             if cache_manager:
                 cache_manager.put(result_n_minus_1)

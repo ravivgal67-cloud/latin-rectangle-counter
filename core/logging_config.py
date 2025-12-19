@@ -193,7 +193,8 @@ class ProgressLogger:
                              rate=rate,
                              elapsed_time=elapsed)
                 else:
-                    self.debug(f"Process {process_id} progress: {pct:.1f}% ({completed_work:,}/{progress['total_work']:,})",
+                    # Log progress as INFO so it appears in .log files, not just .jsonl
+                    self.info(f"Process {process_id} progress: {pct:.1f}% ({completed_work:,}/{progress['total_work']:,})",
                              process_id=process_id,
                              progress_pct=pct,
                              completed_work=completed_work,

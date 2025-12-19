@@ -76,14 +76,14 @@ def _parse_jsonl_file(jsonl_file: str) -> Optional[Dict]:
         return None
     
     # Extract process info from filename
-    # e.g., "parallel_6_7_process_0_progress.jsonl" -> r=6, n=7, process=0
+    # e.g., "parallel_completion_6_7_process_0_progress.jsonl" -> r=6, n=7, process=0
     filename = os.path.basename(jsonl_file)
-    match = re.match(r'parallel_(\d+)_(\d+)_process_(\d+)_progress\.jsonl', filename)
+    match = re.match(r'parallel_completion_(\d+)_(\d+)_process_(\d+)_progress\.jsonl', filename)
     if not match:
         return None
     
     r, n, process_num = map(int, match.groups())
-    process_id = f"parallel_{r}_{n}_process_{process_num}"
+    process_id = f"parallel_completion_{r}_{n}_process_{process_num}"
     
     # Read the JSONL file and find the latest progress entry
     latest_progress = None
@@ -99,8 +99,8 @@ def _parse_jsonl_file(jsonl_file: str) -> Optional[Dict]:
                 try:
                     entry = json.loads(line)
                     
-                    # Look for progress entries (have rectangles_found field)
-                    if 'rectangles_found' in entry:
+                    # Look for progress entries (have progress_pct field)
+                    if 'progress_pct' in entry and 'completed_work' in entry:
                         timestamp_str = entry.get('timestamp')
                         if timestamp_str:
                             timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
@@ -112,7 +112,7 @@ def _parse_jsonl_file(jsonl_file: str) -> Optional[Dict]:
                                 is_complete = entry.get('progress_pct', 0) >= 100.0
                                 
                                 latest_progress = {
-                                    'rectangles_scanned': entry.get('rectangles_found', 0),
+                                    'rectangles_scanned': entry.get('completed_work', 0),
                                     'positive_count': entry.get('positive_count', 0),
                                     'negative_count': entry.get('negative_count', 0),
                                     'is_complete': is_complete,

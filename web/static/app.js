@@ -440,8 +440,11 @@ function updateProgressInTable(progressData) {
     }
     
     if (!targetRow) {
-        console.warn(`Row not found for (${r}, ${n})`);
-        return;
+        console.log(`Creating new row for progress update (${r}, ${n})`);
+        // Create a new row for this dimension if it doesn't exist
+        targetRow = document.createElement('tr');
+        targetRow.className = 'computing-row';
+        resultsTbody.appendChild(targetRow);
     }
     
     // Don't update rows that already have results (cached rows)

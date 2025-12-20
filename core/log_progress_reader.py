@@ -15,33 +15,38 @@ from datetime import datetime, timedelta
 
 def get_progress_from_logs(log_dir: str = "logs") -> List[Dict]:
     """
-    Read progress information from JSONL progress files.
+    Read progress information from JSONL progress files and aggregate by (r,n).
     
     Reads structured progress data from .jsonl files that contain
     progress updates logged every 10 minutes during computations.
+    Aggregates progress from multiple processes working on the same (r,n).
     
     Args:
         log_dir: Directory containing log files
         
     Returns:
-        List of dictionaries with progress information:
+        List of dictionaries with aggregated progress information:
         [
             {
                 'r': int,
                 'n': int, 
-                'rectangles_scanned': int,
-                'positive_count': int,
-                'negative_count': int,
-                'is_complete': bool,
-                'last_update': str,  # ISO timestamp
-                'process_id': str    # e.g., "parallel_6_7_process_0"
+                'rectangles_scanned': int,  # Sum across all processes
+                'positive_count': int,      # Sum across all processes  
+                'negative_count': int,      # Sum across all processes
+                'is_complete': bool,        # True if all processes complete
+                'last_update': str,         # Most recent update timestamp
+                'process_count': int,       # Number of processes
+                'progress_pct': float,      # Average progress percentage
+                'completed_work': int,      # Sum of completed work
+                'total_work': int          # Sum of total work
             }
         ]
     """
     if not os.path.exists(log_dir):
         return []
     
-    progress_entries = []
+    # Get progress from all individual processes
+    individual_progress = []
     
     # Find all JSONL progress files that match parallel computation pattern
     jsonl_files = []
@@ -54,12 +59,61 @@ def get_progress_from_logs(log_dir: str = "logs") -> List[Dict]:
         try:
             progress = _parse_jsonl_file(jsonl_file)
             if progress:
-                progress_entries.append(progress)
+                individual_progress.append(progress)
         except Exception as e:
             # Skip files that can't be parsed
             continue
     
-    return progress_entries
+    # Aggregate progress by (r, n)
+    aggregated = {}
+    for progress in individual_progress:
+        key = (progress['r'], progress['n'])
+        
+        if key not in aggregated:
+            aggregated[key] = {
+                'r': progress['r'],
+                'n': progress['n'],
+                'rectangles_scanned': 0,
+                'positive_count': 0,
+                'negative_count': 0,
+                'completed_work': 0,
+                'total_work': 0,
+                'process_count': 0,
+                'completed_processes': 0,
+                'last_update': progress['last_update'],
+                'process_id': f"aggregated_{progress['r']}_{progress['n']}"
+            }
+        
+        agg = aggregated[key]
+        agg['rectangles_scanned'] += progress['rectangles_scanned']
+        agg['positive_count'] += progress['positive_count']
+        agg['negative_count'] += progress['negative_count']
+        agg['completed_work'] += progress['completed_work']
+        agg['total_work'] += progress['total_work']
+        agg['process_count'] += 1
+        
+        if progress['is_complete']:
+            agg['completed_processes'] += 1
+            
+        # Keep the most recent update time
+        if progress['last_update'] > agg['last_update']:
+            agg['last_update'] = progress['last_update']
+    
+    # Calculate aggregate statistics
+    result = []
+    for agg in aggregated.values():
+        # Calculate overall progress percentage
+        if agg['total_work'] > 0:
+            agg['progress_pct'] = (agg['completed_work'] / agg['total_work']) * 100
+        else:
+            agg['progress_pct'] = 0
+            
+        # Determine if computation is complete (all processes done)
+        agg['is_complete'] = (agg['completed_processes'] == agg['process_count']) and agg['process_count'] > 0
+        
+        result.append(agg)
+    
+    return result
 
 
 def _parse_jsonl_file(jsonl_file: str) -> Optional[Dict]:

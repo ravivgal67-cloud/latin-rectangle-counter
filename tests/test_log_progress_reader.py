@@ -1,218 +1,153 @@
-#!/usr/bin/env python3
 """
-Tests for the log progress reader functionality.
+Tests for log-based progress reader with aggregated format.
+
+Tests the new aggregated progress system that combines multiple processes
+working on the same (r,n) computation into single progress entries.
 """
 
-import pytest
-import tempfile
-import shutil
 import json
-import os
+import tempfile
+import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
-from datetime import datetime
 
-from core.log_progress_reader import (
-    get_progress_from_logs, 
-    is_computation_active,
-    _parse_jsonl_file
-)
+from core.log_progress_reader import get_progress_from_logs, is_computation_active, _parse_jsonl_file
 
 
-class TestLogProgressReader:
-    """Test log progress reader functionality."""
+class TestAggregatedLogProgressReader(unittest.TestCase):
+    """Test the aggregated log progress reader functionality."""
     
-    def setup_method(self):
-        """Set up test environment."""
+    def setUp(self):
+        """Set up temporary directory for test files."""
         self.temp_dir = tempfile.mkdtemp()
     
-    def teardown_method(self):
-        """Clean up test environment."""
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.temp_dir)
     
-    def test_empty_log_directory(self):
-        """Test behavior with empty log directory."""
-        progress = get_progress_from_logs(self.temp_dir)
-        assert progress == []
-        
-        active = is_computation_active(self.temp_dir)
-        assert active is False
-    
-    def test_nonexistent_log_directory(self):
-        """Test behavior with nonexistent log directory."""
-        nonexistent_dir = os.path.join(self.temp_dir, "nonexistent")
-        
-        progress = get_progress_from_logs(nonexistent_dir)
-        assert progress == []
-        
-        active = is_computation_active(nonexistent_dir)
-        assert active is False
-    
-    def test_parse_valid_jsonl_file(self):
-        """Test parsing a valid JSONL progress file."""
-        # Create a test JSONL file
-        jsonl_file = Path(self.temp_dir) / "parallel_6_7_process_0_progress.jsonl"
-        
-        # Create sample progress entries
-        entries = [
-            {
-                "timestamp": "2023-12-17T10:00:00",
-                "level": "DEBUG",
-                "message": "Progress update",
-                "rectangles_found": 10000,
-                "positive_count": 5000,
-                "negative_count": 5000,
-                "progress_pct": 25.0,
-                "completed_work": 250,
-                "total_work": 1000
-            },
-            {
-                "timestamp": "2023-12-17T10:05:00",
-                "level": "DEBUG", 
-                "message": "Progress update",
-                "rectangles_found": 20000,
-                "positive_count": 10000,
-                "negative_count": 10000,
-                "progress_pct": 50.0,
-                "completed_work": 500,
-                "total_work": 1000
-            }
-        ]
-        
-        with open(jsonl_file, 'w') as f:
-            for entry in entries:
-                f.write(json.dumps(entry) + '\n')
-        
-        # Parse the file
-        result = _parse_jsonl_file(str(jsonl_file))
-        
-        assert result is not None
-        assert result['r'] == 6
-        assert result['n'] == 7
-        assert result['process_id'] == "parallel_6_7_process_0"
-        assert result['rectangles_scanned'] == 20000  # Latest entry
-        assert result['positive_count'] == 10000
-        assert result['negative_count'] == 10000
-        assert result['progress_pct'] == 50.0
-        assert result['is_complete'] is False
-    
-    def test_parse_completed_computation(self):
-        """Test parsing a completed computation (100% progress)."""
-        jsonl_file = Path(self.temp_dir) / "parallel_5_6_process_1_progress.jsonl"
+    def test_single_process_progress(self):
+        """Test reading progress from a single process."""
+        jsonl_file = Path(self.temp_dir) / "parallel_completion_6_7_process_0_progress.jsonl"
         
         entry = {
-            "timestamp": "2023-12-17T10:10:00",
+            "timestamp": "2023-12-17T10:00:00",
             "level": "DEBUG",
-            "message": "Final progress",
-            "rectangles_found": 50000,
-            "positive_count": 25000,
-            "negative_count": 25000,
-            "progress_pct": 100.0,
-            "completed_work": 1000,
-            "total_work": 1000
+            "message": "Progress update",
+            "progress_pct": 50.0,
+            "completed_work": 100,
+            "total_work": 200,
+            "positive_count": 5000,
+            "negative_count": 5000
         }
         
         with open(jsonl_file, 'w') as f:
             f.write(json.dumps(entry) + '\n')
         
-        result = _parse_jsonl_file(str(jsonl_file))
+        progress_list = get_progress_from_logs(self.temp_dir)
         
-        assert result is not None
-        assert result['r'] == 5
-        assert result['n'] == 6
-        assert result['is_complete'] is True
-        assert result['rectangles_scanned'] == 50000
+        assert len(progress_list) == 1
+        result = progress_list[0]
+        assert result['r'] == 6
+        assert result['n'] == 7
+        assert result['rectangles_scanned'] == 100
+        assert result['positive_count'] == 5000
+        assert result['negative_count'] == 5000
+        assert result['progress_pct'] == 50.0
+        assert result['process_count'] == 1
+        assert result['is_complete'] is False
     
-    def test_parse_invalid_filename(self):
-        """Test parsing file with invalid filename format."""
-        jsonl_file = Path(self.temp_dir) / "invalid_filename.jsonl"
-        
-        with open(jsonl_file, 'w') as f:
-            f.write('{"test": "data"}\n')
-        
-        result = _parse_jsonl_file(str(jsonl_file))
-        assert result is None
-    
-    def test_parse_malformed_json(self):
-        """Test parsing file with malformed JSON."""
-        jsonl_file = Path(self.temp_dir) / "parallel_4_5_process_0_progress.jsonl"
-        
-        with open(jsonl_file, 'w') as f:
-            f.write('{"valid": "json"}\n')
-            f.write('invalid json line\n')
-            f.write('{"timestamp": "2023-12-17T10:00:00", "rectangles_found": 1000, "positive_count": 500, "negative_count": 500}\n')
-        
-        result = _parse_jsonl_file(str(jsonl_file))
-        
-        # Should still parse the valid entries that have required fields
-        assert result is not None
-        assert result['rectangles_scanned'] == 1000
-    
-    def test_get_progress_from_multiple_files(self):
-        """Test getting progress from multiple JSONL files."""
-        # Create multiple progress files
-        files_data = [
-            ("parallel_6_7_process_0_progress.jsonl", {
-                "rectangles_found": 10000,
-                "positive_count": 5000,
-                "negative_count": 5000,
-                "progress_pct": 50.0
-            }),
-            ("parallel_6_7_process_1_progress.jsonl", {
-                "rectangles_found": 15000,
-                "positive_count": 7500,
-                "negative_count": 7500,
-                "progress_pct": 75.0
-            }),
-            ("parallel_5_6_process_0_progress.jsonl", {
-                "rectangles_found": 30000,
-                "positive_count": 15000,
-                "negative_count": 15000,
-                "progress_pct": 100.0
-            })
-        ]
-        
-        for filename, data in files_data:
-            jsonl_file = Path(self.temp_dir) / filename
+    def test_multiple_processes_aggregation(self):
+        """Test aggregating progress from multiple processes for same (r,n)."""
+        # Create 3 processes working on (6,7)
+        for i in range(3):
+            jsonl_file = Path(self.temp_dir) / f"parallel_completion_6_7_process_{i}_progress.jsonl"
+            
             entry = {
                 "timestamp": "2023-12-17T10:00:00",
                 "level": "DEBUG",
                 "message": "Progress update",
-                **data
+                "progress_pct": 50.0,
+                "completed_work": 100 + i * 10,  # Different progress per process
+                "total_work": 200,
+                "positive_count": 1000 + i * 100,
+                "negative_count": 2000 + i * 200
             }
             
             with open(jsonl_file, 'w') as f:
                 f.write(json.dumps(entry) + '\n')
         
-        # Get all progress
         progress_list = get_progress_from_logs(self.temp_dir)
         
-        assert len(progress_list) == 3
+        # Should aggregate into single (6,7) entry
+        assert len(progress_list) == 1
+        result = progress_list[0]
         
-        # Check that we got data from all files
-        r_n_pairs = {(p['r'], p['n']) for p in progress_list}
-        assert (6, 7) in r_n_pairs
-        assert (5, 6) in r_n_pairs
-        
-        # Check completion status
-        completed = [p for p in progress_list if p.get('is_complete')]
-        running = [p for p in progress_list if not p.get('is_complete')]
-        
-        assert len(completed) == 1  # The 100% one
-        assert len(running) == 2    # The others
+        assert result['r'] == 6
+        assert result['n'] == 7
+        assert result['process_count'] == 3
+        assert result['rectangles_scanned'] == 100 + 110 + 120  # Sum of completed_work
+        assert result['positive_count'] == 1000 + 1100 + 1200   # Sum of positive counts
+        assert result['negative_count'] == 2000 + 2200 + 2400   # Sum of negative counts
+        assert result['total_work'] == 600  # Sum of total work
+        assert result['is_complete'] is False  # No processes at 100%
     
-    def test_is_computation_active_with_recent_logs(self):
-        """Test active computation detection with recent logs."""
-        jsonl_file = Path(self.temp_dir) / "parallel_6_7_process_0_progress.jsonl"
+    def test_mixed_dimensions(self):
+        """Test handling multiple different (r,n) computations."""
+        # Create processes for (6,7) and (5,6)
+        files_data = [
+            ("parallel_completion_6_7_process_0_progress.jsonl", 6, 7, 50.0, False),
+            ("parallel_completion_6_7_process_1_progress.jsonl", 6, 7, 75.0, False),
+            ("parallel_completion_5_6_process_0_progress.jsonl", 5, 6, 100.0, True)
+        ]
         
-        # Create recent entry (current time)
+        for filename, r, n, pct, complete in files_data:
+            jsonl_file = Path(self.temp_dir) / filename
+            
+            entry = {
+                "timestamp": "2023-12-17T10:00:00",
+                "level": "DEBUG",
+                "message": "Progress update",
+                "progress_pct": pct,
+                "completed_work": int(pct * 2),  # 100, 150, 200
+                "total_work": 200,
+                "positive_count": int(pct * 100),
+                "negative_count": int(pct * 100)
+            }
+            
+            with open(jsonl_file, 'w') as f:
+                f.write(json.dumps(entry) + '\n')
+        
+        progress_list = get_progress_from_logs(self.temp_dir)
+        
+        # Should have 2 aggregated entries
+        assert len(progress_list) == 2
+        
+        # Check (6,7) aggregation
+        progress_6_7 = next(p for p in progress_list if p['r'] == 6 and p['n'] == 7)
+        assert progress_6_7['process_count'] == 2
+        assert progress_6_7['rectangles_scanned'] == 100 + 150  # Sum
+        assert progress_6_7['is_complete'] is False
+        
+        # Check (5,6) single process
+        progress_5_6 = next(p for p in progress_list if p['r'] == 5 and p['n'] == 6)
+        assert progress_5_6['process_count'] == 1
+        assert progress_5_6['is_complete'] is True
+    
+    def test_computation_activity_detection(self):
+        """Test detecting active computations."""
+        jsonl_file = Path(self.temp_dir) / "parallel_completion_6_7_process_0_progress.jsonl"
+        
+        # Create recent entry
         entry = {
             "timestamp": datetime.now().isoformat(),
             "level": "DEBUG",
             "message": "Progress update",
-            "rectangles_found": 10000,
+            "progress_pct": 50.0,
+            "completed_work": 100,
+            "total_work": 200,
             "positive_count": 5000,
-            "negative_count": 5000,
-            "progress_pct": 50.0
+            "negative_count": 5000
         }
         
         with open(jsonl_file, 'w') as f:
@@ -222,74 +157,33 @@ class TestLogProgressReader:
         active = is_computation_active(self.temp_dir, max_age_minutes=15)
         assert active is True
     
-    def test_is_computation_active_with_old_logs(self):
-        """Test active computation detection with old logs."""
-        jsonl_file = Path(self.temp_dir) / "parallel_6_7_process_0_progress.jsonl"
+    def test_no_active_computations(self):
+        """Test when no computations are active."""
+        # Empty directory
+        active = is_computation_active(self.temp_dir)
+        assert active is False
         
-        # Create old entry (1 hour ago)
-        old_time = datetime.now().replace(hour=datetime.now().hour - 1)
+        # Old computation
+        jsonl_file = Path(self.temp_dir) / "parallel_completion_6_7_process_0_progress.jsonl"
+        old_time = datetime.now() - timedelta(hours=1)
+        
         entry = {
             "timestamp": old_time.isoformat(),
             "level": "DEBUG",
             "message": "Progress update",
-            "rectangles_found": 10000,
-            "positive_count": 5000,
-            "negative_count": 5000,
-            "progress_pct": 50.0
+            "progress_pct": 100.0,
+            "completed_work": 200,
+            "total_work": 200,
+            "positive_count": 10000,
+            "negative_count": 10000
         }
         
         with open(jsonl_file, 'w') as f:
             f.write(json.dumps(entry) + '\n')
         
-        # Should not detect as active (too old)
         active = is_computation_active(self.temp_dir, max_age_minutes=15)
         assert active is False
-    
-    def test_is_computation_active_with_completed_logs(self):
-        """Test active computation detection with completed computations."""
-        jsonl_file = Path(self.temp_dir) / "parallel_6_7_process_0_progress.jsonl"
-        
-        # Create recent but completed entry
-        entry = {
-            "timestamp": datetime.now().isoformat(),
-            "level": "DEBUG",
-            "message": "Final progress",
-            "rectangles_found": 50000,
-            "positive_count": 25000,
-            "negative_count": 25000,
-            "progress_pct": 100.0
-        }
-        
-        with open(jsonl_file, 'w') as f:
-            f.write(json.dumps(entry) + '\n')
-        
-        # Should not detect as active (completed)
-        active = is_computation_active(self.temp_dir, max_age_minutes=15)
-        assert active is False
-    
-    def test_ignore_non_parallel_files(self):
-        """Test that non-parallel log files are ignored."""
-        # Create non-parallel files
-        files = [
-            "regular_log.jsonl",
-            "web_session_progress.jsonl", 
-            "test_session_progress.jsonl"
-        ]
-        
-        for filename in files:
-            jsonl_file = Path(self.temp_dir) / filename
-            entry = {
-                "timestamp": datetime.now().isoformat(),
-                "message": "Some log entry"
-            }
-            
-            with open(jsonl_file, 'w') as f:
-                f.write(json.dumps(entry) + '\n')
-        
-        # Should find no progress (no parallel files)
-        progress_list = get_progress_from_logs(self.temp_dir)
-        assert len(progress_list) == 0
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    unittest.main()

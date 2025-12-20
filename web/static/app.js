@@ -424,7 +424,7 @@ function formatElapsedTime() {
  * Update progress for a specific dimension in the table
  */
 function updateProgressInTable(progressData) {
-    const {r, n, rectangles_scanned, positive_count, negative_count, is_complete} = progressData;
+    const {r, n, rectangles_scanned, positive_count, negative_count, is_complete, progress_pct} = progressData;
     
     // Find the row for this dimension
     const rows = resultsTbody.querySelectorAll('tr');
@@ -468,15 +468,16 @@ function updateProgressInTable(progressData) {
             <td><span class="computed-badge">Computed</span></td>
         `;
     } else {
-        // Update with progress including elapsed time
+        // Update with progress including elapsed time and percentage
         const elapsedTime = formatElapsedTime();
+        const progressPercent = progress_pct !== undefined ? progress_pct.toFixed(1) : '0.0';
         targetRow.className = 'computing-row';
         targetRow.innerHTML = `
             <td>${r}</td>
             <td>${n}</td>
             <td colspan="5" style="text-align: center; color: var(--text-secondary);">
                 <span class="computing-indicator">
-                    Computing... [${elapsedTime}] (scanned: ${formatNumber(rectangles_scanned)}, 
+                    Computing... ${progressPercent}% [${elapsedTime}] (scanned: ${formatNumber(rectangles_scanned)}, 
                     +${formatNumber(positive_count)}, 
                     -${formatNumber(negative_count)})
                 </span>

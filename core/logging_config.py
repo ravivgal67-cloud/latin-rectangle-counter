@@ -182,7 +182,8 @@ class ProgressLogger:
                 negative_count = additional_info.get("negative_count", 0) if additional_info else 0
                 
                 if rectangles_found > 0:
-                    self.debug(f"Thread {process_id + 1} progress: {rectangles_found:,} rectangles "
+                    # Log progress as INFO so it appears in .log files, not just .jsonl
+                    self.info(f"Thread {process_id + 1} progress: {rectangles_found:,} rectangles "
                              f"(+{positive_count:,} -{negative_count:,}) - {pct:.1f}% work units",
                              process_id=process_id,
                              progress_pct=pct,

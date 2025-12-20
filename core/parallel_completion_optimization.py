@@ -757,6 +757,9 @@ def count_rectangles_with_completion_parallel(r: int, n: int,
     from core.logging_config import ProgressLogger
     logger = ProgressLogger(f"parallel_completion_{r}_{n}")
     
+    # Start progress monitoring for aggregate updates every 2 minutes
+    logger.start_progress_monitoring(interval_minutes=2)
+    
     # Auto-detect optimal process count
     if num_processes is None:
         num_processes = min(mp.cpu_count(), 8)

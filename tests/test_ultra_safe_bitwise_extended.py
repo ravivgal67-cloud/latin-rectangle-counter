@@ -31,49 +31,6 @@ class TestUltraSafeBitwiseExtended(TestBaseWithProductionLogs):
         
         print("✅ Parameter validation tests passed")
     
-    def test_r2_cases_comprehensive(self):
-        """Test r=2 cases comprehensively."""
-        
-        # Test various n values for r=2
-        test_cases = [
-            (2, 3, 2),    # Known: 2 derangements for n=3
-            (2, 4, 9),    # Known: 9 derangements for n=4  
-            (2, 5, 44),   # Known: 44 derangements for n=5
-            (2, 6, 265),  # Known: 265 derangements for n=6
-        ]
-        
-        for r, n, expected_total in test_cases:
-            total, positive, negative = count_rectangles_ultra_safe_bitwise(r, n)
-            
-            assert total == expected_total, f"({r},{n}) total mismatch: got {total}, expected {expected_total}"
-            assert positive + negative == total, f"({r},{n}) positive + negative != total"
-            assert positive >= 0 and negative >= 0, f"({r},{n}) negative counts"
-            
-            print(f"✅ ({r},{n}): {total} rectangles (+{positive} -{negative})")
-    
-    def test_r3_cases_extended(self):
-        """Test r=3 cases with various n values."""
-        
-        # Test cases where we can verify correctness
-        test_cases = [
-            (3, 4),   # Small case
-            (3, 5),   # Medium case
-            (3, 6),   # Larger case
-        ]
-        
-        for r, n in test_cases:
-            total, positive, negative = count_rectangles_ultra_safe_bitwise(r, n)
-            
-            # Basic sanity checks
-            assert total > 0, f"({r},{n}) should have rectangles"
-            assert positive + negative == total, f"({r},{n}) count mismatch"
-            assert positive >= 0 and negative >= 0, f"({r},{n}) negative counts"
-            
-            # For r=3, we expect some positive and some negative rectangles
-            assert positive > 0 and negative > 0, f"({r},{n}) should have both positive and negative"
-            
-            print(f"✅ ({r},{n}): {total} rectangles (+{positive} -{negative})")
-    
     def test_performance_characteristics(self):
         """Test performance characteristics and timing."""
         

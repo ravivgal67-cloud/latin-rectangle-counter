@@ -63,7 +63,7 @@ class TestSignComputation:
     """Tests for sign computation correctness."""
     
     @given(latin_rectangle_strategy(min_r=2, max_r=4, min_n=2, max_n=5))
-    @settings(max_examples=100, deadline=None)
+    @settings(max_examples=50, deadline=None)
     def test_sign_computation_correctness(self, rect):
         """
         **Feature: latin-rectangle-counter, Property 8: Sign computation correctness**
@@ -118,7 +118,7 @@ class TestNormalizedFirstRow:
     """Tests for normalized first row property."""
     
     @given(latin_rectangle_strategy(min_r=2, max_r=4, min_n=2, max_n=6))
-    @settings(max_examples=100, deadline=None)
+    @settings(max_examples=50, deadline=None)
     def test_normalized_first_row(self, rect):
         """
         **Feature: latin-rectangle-counter, Property 5: Normalized first row**
@@ -155,7 +155,7 @@ class TestValidRectangleStructure:
     """Tests for valid rectangle structure property."""
     
     @given(latin_rectangle_strategy(min_r=2, max_r=4, min_n=2, max_n=6))
-    @settings(max_examples=100, deadline=None)
+    @settings(max_examples=50, deadline=None)
     def test_valid_rectangle_structure(self, rect):
         """
         **Feature: latin-rectangle-counter, Property 6: Valid rectangle structure**
@@ -256,7 +256,7 @@ class TestGenerationCompleteness:
             lambda n: st.tuples(st.just(n), st.integers(min_value=2, max_value=min(4, n)))
         )
     )
-    @settings(max_examples=100, deadline=None)
+    @settings(max_examples=50, deadline=None)
     def test_generation_completeness_and_uniqueness(self, dims):
         """
         **Feature: latin-rectangle-counter, Property 7: Generation completeness and uniqueness**

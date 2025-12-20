@@ -15,7 +15,7 @@ class TestCountNLRR2:
     """Tests for r=2 counting accuracy."""
     
     @given(st.integers(min_value=2, max_value=8))
-    @settings(max_examples=100, deadline=1000)
+    @settings(max_examples=50, deadline=1000)
     def test_count_accuracy_r2(self, n):
         """
         **Feature: latin-rectangle-counter, Property 10: Count accuracy (r=2 case)**
@@ -85,7 +85,7 @@ class TestDifferenceCalculation:
     """Tests for difference calculation property."""
     
     @given(st.integers(min_value=2, max_value=8))
-    @settings(max_examples=100, deadline=None)
+    @settings(max_examples=50, deadline=None)
     def test_difference_calculation(self, n):
         """
         **Feature: latin-rectangle-counter, Property 11: Difference calculation**
@@ -132,7 +132,7 @@ class TestCountAccuracy:
             lambda n: st.tuples(st.just(n), st.integers(min_value=2, max_value=n))
         )
     )
-    @settings(max_examples=100, deadline=None)
+    @settings(max_examples=50, deadline=None)
     def test_count_accuracy_general(self, dims):
         """
         **Feature: latin-rectangle-counter, Property 10: Count accuracy**

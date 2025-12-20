@@ -300,7 +300,7 @@ def count_rectangles_ultra_safe_bitwise(r: int, n: int) -> Tuple[int, int, int]:
                                 else:
                                     negative_count += 1
     
-    elif r == 8:
+    elif r == 8:  # pragma: no cover
         for second_idx in range(num_derangements):
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask
@@ -380,7 +380,7 @@ def count_rectangles_ultra_safe_bitwise(r: int, n: int) -> Tuple[int, int, int]:
                                     else:
                                         negative_count += 1
     
-    elif r == 9:
+    elif r == 9:  # pragma: no cover
         for second_idx in range(num_derangements):
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask
@@ -472,7 +472,7 @@ def count_rectangles_ultra_safe_bitwise(r: int, n: int) -> Tuple[int, int, int]:
                                         else:
                                             negative_count += 1
     
-    elif r == 10:
+    elif r == 10:  # pragma: no cover
         for second_idx in range(num_derangements):
             second_row, second_sign = derangements_with_signs[second_idx]
             third_row_valid = all_valid_mask

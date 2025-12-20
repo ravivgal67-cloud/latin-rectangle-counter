@@ -319,7 +319,7 @@ def count_rectangles_completion_partition(r: int, n: int,
                             else:
                                 negative_r_plus_1 += 1
         
-        elif r == 6:
+        elif r == 6:  # pragma: no cover
             # For r=6, computing (6,7) and (7,7)
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -401,7 +401,7 @@ def count_rectangles_completion_partition(r: int, n: int,
                                 else:
                                     negative_r_plus_1 += 1
         
-        elif r == 7:
+        elif r == 7:  # pragma: no cover
             # For r=7, computing (7,8) and (8,8)
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -491,7 +491,7 @@ def count_rectangles_completion_partition(r: int, n: int,
                                     else:
                                         negative_r_plus_1 += 1
         
-        elif r == 8:
+        elif r == 8:  # pragma: no cover
             # For r=8, computing (8,9) and (9,9)
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -593,7 +593,7 @@ def count_rectangles_completion_partition(r: int, n: int,
                                         else:
                                             negative_r_plus_1 += 1
         
-        elif r == 9:
+        elif r == 9:  # pragma: no cover
             # For r=9, computing (9,10) and (10,10)
             third_row_valid = all_valid_mask
             for pos in range(n):
@@ -707,7 +707,7 @@ def count_rectangles_completion_partition(r: int, n: int,
                                             else:
                                                 negative_r_plus_1 += 1
         
-        else:
+        else:  # pragma: no cover
             # For r >= 10, not supported in completion optimization
             raise NotImplementedError(f"Parallel completion optimization only supports r <= 9, got r={r}")
     

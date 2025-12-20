@@ -1,8 +1,8 @@
 # Latin Rectangle Counter 🔢
 
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-171%20passed-success)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-94%25-brightgreen)](htmlcov/index.html)
+[![Tests](https://img.shields.io/badge/tests-251%20passed-success)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen)](htmlcov/index.html)
 
 A high-performance web application for counting and analyzing normalized Latin rectangles, featuring a comprehensive optimization stack with up to **2x speedup** and resumable computation capabilities.
 
@@ -17,7 +17,7 @@ A high-performance web application for counting and analyzing normalized Latin r
 - **Dual Views**: 
   - **Calculate**: Compute new results with real-time progress tracking
   - **Results**: Browse and filter cached computations
-- **Property-Based Testing**: 171 tests with 94% coverage using Hypothesis
+- **Property-Based Testing**: 251 tests with 80% coverage using Hypothesis
 - **Performance Insights**: Track computation time and timestamps for all results
 - **Crash Recovery**: Detailed logging for resuming interrupted computations
 
@@ -154,10 +154,11 @@ xdg-open htmlcov/index.html  # Linux
 ```
 
 ### Test Statistics
-- **171 tests** - All passing ✅
-- **94% coverage** - Excellent coverage across all modules
+- **251 tests** - All passing ✅
+- **80% coverage** - Excellent coverage across all testable modules
 - **Property-based tests** - Using Hypothesis for robust validation
 - **Optimization tests** - Comprehensive coverage of all optimization layers
+- **Large dimension code** - Appropriately excluded from coverage (marked as `# pragma: no cover`)
 
 ## ⚡ Performance
 
@@ -244,7 +245,7 @@ See [scripts/README.md](scripts/README.md) for all available scripts.
 - **Type hints** throughout the codebase
 - **Docstrings** with examples
 - **Property-based testing** with Hypothesis
-- **94% test coverage**
+- **80% test coverage** (realistic coverage excluding large dimension optimizations)
 - **Clean architecture** with clear separation of concerns
 
 ## 🤝 Contributing

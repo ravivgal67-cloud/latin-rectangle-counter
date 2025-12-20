@@ -49,60 +49,20 @@ except ImportError:
 class TestUltraSafeBitwiseCorrectness:
     """Test correctness of ultra-safe bitwise implementation."""
     
-    def test_r2_correctness(self):
-        """Test r=2 correctness against standard counter."""
-        test_cases = [(2, 3), (2, 4), (2, 5), (2, 6)]
-        
-        for r, n in test_cases:
-            # Get result from ultra-safe bitwise
-            ultra_total, ultra_positive, ultra_negative = count_rectangles_ultra_safe_bitwise(r, n)
-            
-            # Get result from standard counter
-            standard_result = count_rectangles(r, n)
-            standard_total = standard_result.positive_count + standard_result.negative_count
-            
-            # Verify correctness
-            assert ultra_total == standard_total, f"Total mismatch for ({r},{n}): {ultra_total} vs {standard_total}"
-            assert ultra_positive == standard_result.positive_count, f"Positive mismatch for ({r},{n})"
-            assert ultra_negative == standard_result.negative_count, f"Negative mismatch for ({r},{n})"
-    
-    def test_r3_correctness(self):
-        """Test r=3 correctness against standard counter."""
-        test_cases = [(3, 3), (3, 4), (3, 5), (3, 6)]
-        
-        for r, n in test_cases:
-            # Get result from ultra-safe bitwise
-            ultra_total, ultra_positive, ultra_negative = count_rectangles_ultra_safe_bitwise(r, n)
-            
-            # Get result from standard counter
-            standard_result = count_rectangles(r, n)
-            standard_total = standard_result.positive_count + standard_result.negative_count
-            
-            # Verify correctness
-            assert ultra_total == standard_total, f"Total mismatch for ({r},{n}): {ultra_total} vs {standard_total}"
-            assert ultra_positive == standard_result.positive_count, f"Positive mismatch for ({r},{n})"
-            assert ultra_negative == standard_result.negative_count, f"Negative mismatch for ({r},{n})"
-    
-    def test_r4_correctness(self):
-        """Test r=4 correctness against standard counter."""
-        test_cases = [(4, 4), (4, 5), (4, 6)]
-        
-        for r, n in test_cases:
-            # Get result from ultra-safe bitwise
-            ultra_total, ultra_positive, ultra_negative = count_rectangles_ultra_safe_bitwise(r, n)
-            
-            # Get result from standard counter
-            standard_result = count_rectangles(r, n)
-            standard_total = standard_result.positive_count + standard_result.negative_count
-            
-            # Verify correctness
-            assert ultra_total == standard_total, f"Total mismatch for ({r},{n}): {ultra_total} vs {standard_total}"
-            assert ultra_positive == standard_result.positive_count, f"Positive mismatch for ({r},{n})"
-            assert ultra_negative == standard_result.negative_count, f"Negative mismatch for ({r},{n})"
-    
-    def test_r5_correctness(self):
-        """Test r=5 correctness against standard counter."""
-        test_cases = [(5, 5), (5, 6)]
+    def test_specific_cases_correctness(self):
+        """Test correctness against standard counter for specific known cases."""
+        # Consolidated test cases from r2, r3, r4, r5 correctness tests
+        # These specific cases complement the property-based test with known values
+        test_cases = [
+            # r=2 cases
+            (2, 3), (2, 4), (2, 5), (2, 6),
+            # r=3 cases  
+            (3, 3), (3, 4), (3, 5), (3, 6),
+            # r=4 cases
+            (4, 4), (4, 5), (4, 6),
+            # r=5 cases
+            (5, 5), (5, 6)
+        ]
         
         for r, n in test_cases:
             # Get result from ultra-safe bitwise

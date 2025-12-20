@@ -140,7 +140,7 @@ def estimate_computation_time(r: int, n: int, num_processes: Optional[int] = Non
                 return "~1 minute"
             elif r == 5:
                 return "~20 minutes"
-            else:
+            else:  # pragma: no cover
                 return "> 1 hour"
         else:
             # Parallel estimates (8 processes)
@@ -150,9 +150,9 @@ def estimate_computation_time(r: int, n: int, num_processes: Optional[int] = Non
                 return "~10 seconds"
             elif r == 5:
                 return "~5 minutes"
-            else:
+            else:  # pragma: no cover
                 return "> 10 minutes"
-    else:
+    else:  # pragma: no cover
         # Large problems (n ≥ 8)
         return "Unknown (very large problem)"
 

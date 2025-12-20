@@ -513,6 +513,37 @@
                             </div>
                         </div>
 
+                        <!-- Parallel Processing Settings -->
+                        <div id="parallel-settings" class="parallel-settings" style="display: none;">
+                            <div class="settings-header">
+                                <h3>⚡ Performance Settings</h3>
+                            </div>
+                            <div id="recommendation-display" class="recommendation-box">
+                                <div class="recommendation-icon">💡</div>
+                                <div class="recommendation-content">
+                                    <div class="recommendation-text">
+                                        <strong>Recommendation:</strong> <span id="rec-method">Loading...</span>
+                                    </div>
+                                    <div class="recommendation-details">
+                                        <span id="rec-processes"></span>
+                                        <span class="separator">•</span>
+                                        <span id="rec-time"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="process-selector">
+                                <label for="num-processes">Number of Processes:</label>
+                                <select id="num-processes" name="num_processes">
+                                    <option value="auto" selected>Auto (Recommended)</option>
+                                    <option value="1">1 (Single-threaded)</option>
+                                    <option value="2">2 processes</option>
+                                    <option value="4">4 processes</option>
+                                    <option value="8">8 processes</option>
+                                </select>
+                                <span class="hint">Auto-selects based on problem size (n≤6: single, n≥7: parallel)</span>
+                            </div>
+                        </div>
+
                         <button type="submit" id="submit-btn" class="primary-btn">
                             <span>Calculate Results</span>
                             <span class="btn-arrow">→</span>

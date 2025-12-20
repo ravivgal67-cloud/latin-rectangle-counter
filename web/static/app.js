@@ -159,6 +159,9 @@ function switchMode(mode) {
     
     // Update hidden radio buttons
     document.getElementById(`mode-${mode}`).checked = true;
+    
+    // Trigger recommendation for the new mode
+    setTimeout(triggerInitialRecommendation, 100);
 }
 
 /**
@@ -421,7 +424,7 @@ function formatElapsedTime() {
  * Update progress for a specific dimension in the table
  */
 function updateProgressInTable(progressData) {
-    const {r, n, rectangles_scanned, positive_count, negative_count, is_complete} = progressData;
+    const {r, n, rectangles_scanned, positive_count, negative_count, is_complete, progress_pct} = progressData;
     
     // Find the row for this dimension
     const rows = resultsTbody.querySelectorAll('tr');
@@ -437,8 +440,11 @@ function updateProgressInTable(progressData) {
     }
     
     if (!targetRow) {
-        console.warn(`Row not found for (${r}, ${n})`);
-        return;
+        console.log(`Creating new row for progress update (${r}, ${n})`);
+        // Create a new row for this dimension if it doesn't exist
+        targetRow = document.createElement('tr');
+        targetRow.className = 'computing-row';
+        resultsTbody.appendChild(targetRow);
     }
     
     // Don't update rows that already have results (cached rows)
@@ -462,15 +468,16 @@ function updateProgressInTable(progressData) {
             <td><span class="computed-badge">Computed</span></td>
         `;
     } else {
-        // Update with progress including elapsed time
+        // Update with progress including elapsed time and percentage
         const elapsedTime = formatElapsedTime();
+        const progressPercent = progress_pct !== undefined ? progress_pct.toFixed(1) : '0.0';
         targetRow.className = 'computing-row';
         targetRow.innerHTML = `
             <td>${r}</td>
             <td>${n}</td>
             <td colspan="5" style="text-align: center; color: var(--text-secondary);">
                 <span class="computing-indicator">
-                    Computing... [${elapsedTime}] (scanned: ${formatNumber(rectangles_scanned)}, 
+                    Computing... ${progressPercent}% [${elapsedTime}] (scanned: ${formatNumber(rectangles_scanned)}, 
                     +${formatNumber(positive_count)}, 
                     -${formatNumber(negative_count)})
                 </span>
@@ -1102,3 +1109,180 @@ function downloadFile(content, filename, mimeType) {
 
 // Make recomputeResult available globally
 window.recomputeResult = recomputeResult;
+
+
+/**
+ * Fetch and display recommendation for given dimensions
+ */
+async function fetchRecommendation(r, n) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/recommend`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ r, n })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch recommendation');
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            displayRecommendation(data);
+        }
+    } catch (error) {
+        console.error('Error fetching recommendation:', error);
+        // Hide recommendation box on error
+        const parallelSettings = document.getElementById('parallel-settings');
+        if (parallelSettings) {
+            parallelSettings.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Display recommendation in the UI
+ */
+function displayRecommendation(data) {
+    const parallelSettings = document.getElementById('parallel-settings');
+    const recMethod = document.getElementById('rec-method');
+    const recProcesses = document.getElementById('rec-processes');
+    const recTime = document.getElementById('rec-time');
+    
+    if (!parallelSettings || !recMethod || !recProcesses || !recTime) {
+        return;
+    }
+    
+    // Show the settings box
+    parallelSettings.style.display = 'block';
+    
+    // Update recommendation text
+    const methodText = data.method === 'parallel' 
+        ? `Parallel processing (${data.processes} processes)` 
+        : 'Single-threaded processing';
+    
+    recMethod.textContent = methodText;
+    recProcesses.textContent = `${data.processes} ${data.processes === 1 ? 'process' : 'processes'}`;
+    recTime.textContent = `Est. time: ${data.estimated_time}`;
+    
+    // Update the select dropdown to show recommended value
+    const numProcessesSelect = document.getElementById('num-processes');
+    if (numProcessesSelect) {
+        // Reset to auto
+        numProcessesSelect.value = 'auto';
+    }
+}
+
+/**
+ * Setup input listeners for recommendation fetching
+ */
+function setupRecommendationListeners() {
+    const inputR = document.getElementById('input-r');
+    const inputN = document.getElementById('input-n');
+    const inputNOnly = document.getElementById('input-n-only');
+    
+    // Debounce function to avoid too many API calls
+    let debounceTimer;
+    const debounce = (func, delay) => {
+        return (...args) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => func(...args), delay);
+        };
+    };
+    
+    // Handler for single mode
+    const handleSingleModeChange = debounce(() => {
+        const r = parseInt(inputR.value);
+        const n = parseInt(inputN.value);
+        
+        if (r >= 2 && n >= 2 && r <= n) {
+            fetchRecommendation(r, n);
+        } else {
+            // Hide recommendation if invalid
+            const parallelSettings = document.getElementById('parallel-settings');
+            if (parallelSettings) {
+                parallelSettings.style.display = 'none';
+            }
+        }
+    }, 500);
+    
+    // Handler for all-n mode
+    const handleAllNModeChange = debounce(() => {
+        const n = parseInt(inputNOnly.value);
+        
+        if (n >= 2) {
+            // For all-n mode, show recommendation for (n, n) as worst case
+            fetchRecommendation(n, n);
+        } else {
+            const parallelSettings = document.getElementById('parallel-settings');
+            if (parallelSettings) {
+                parallelSettings.style.display = 'none';
+            }
+        }
+    }, 500);
+    
+    // Attach listeners
+    if (inputR && inputN) {
+        inputR.addEventListener('input', handleSingleModeChange);
+        inputN.addEventListener('input', handleSingleModeChange);
+    }
+    
+    if (inputNOnly) {
+        inputNOnly.addEventListener('input', handleAllNModeChange);
+    }
+}
+
+/**
+ * Trigger initial recommendation based on current mode
+ */
+function triggerInitialRecommendation() {
+    // Get the active mode
+    const activeTab = document.querySelector('.mode-tab.active');
+    if (!activeTab) return;
+    
+    const mode = activeTab.dataset.mode;
+    const parallelSettings = document.getElementById('parallel-settings');
+    const processSelector = document.querySelector('.process-selector');
+    
+    if (mode === 'range') {
+        // For range mode, hide the parallel settings entirely
+        // Each (r,n) pair will use auto-selection
+        if (parallelSettings) {
+            parallelSettings.style.display = 'none';
+        }
+        return;
+    }
+    
+    // Show process selector for single and all-n modes
+    if (processSelector) {
+        processSelector.style.display = 'flex';
+    }
+    
+    if (mode === 'single') {
+        const inputR = document.getElementById('input-r');
+        const inputN = document.getElementById('input-n');
+        const r = parseInt(inputR.value);
+        const n = parseInt(inputN.value);
+        
+        if (r >= 2 && n >= 2 && r <= n) {
+            fetchRecommendation(r, n);
+        }
+    } else if (mode === 'all-n') {
+        const inputNOnly = document.getElementById('input-n-only');
+        const n = parseInt(inputNOnly.value);
+        
+        if (n >= 2) {
+            fetchRecommendation(n, n);
+        }
+    }
+}
+
+// Initialize recommendation listeners when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    setupRecommendationListeners();
+    // Trigger initial recommendation after a short delay to ensure DOM is ready
+    setTimeout(triggerInitialRecommendation, 100);
+});

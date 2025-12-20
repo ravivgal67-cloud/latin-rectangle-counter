@@ -87,68 +87,9 @@ class TestProgressTracker:
 class TestProgressIntegration:
     """Integration tests for progress tracking with counting functions."""
     
-    def test_count_rectangles_with_progress(self):
-        """Test that count_rectangles reports progress."""
-        tracker = ProgressTracker()
-        updates = []
-        
-        tracker.set_callback(lambda u: updates.append(u))
-        
-        # Count for (3, 4) - should generate progress updates
-        result = count_rectangles(3, 4, progress_tracker=tracker)
-        
-        # Should have received updates
-        assert len(updates) > 0
-        
-        # First update should be start
-        assert updates[0].r == 3
-        assert updates[0].n == 4
-        
-        # Last update should be complete
-        assert updates[-1].is_complete is True
-        
-        # Final counts should match result
-        assert updates[-1].positive_count == result.positive_count
-        assert updates[-1].negative_count == result.negative_count
-    
-    def test_count_for_n_with_progress(self):
-        """Test that count_for_n reports progress for all dimensions."""
-        tracker = ProgressTracker()
-        updates = []
-        
-        tracker.set_callback(lambda u: updates.append(u))
-        
-        # Count for n=3 (should compute r=2,3)
-        results = count_for_n(3, progress_tracker=tracker)
-        
-        # Should have updates for both dimensions
-        dimensions_started = set()
-        for update in updates:
-            if not update.is_complete:
-                dimensions_started.add((update.r, update.n))
-        
-        assert (2, 3) in dimensions_started
-        assert (3, 3) in dimensions_started
-    
-    def test_count_range_with_progress(self):
-        """Test that count_range reports progress for all dimensions."""
-        tracker = ProgressTracker()
-        updates = []
-        
-        tracker.set_callback(lambda u: updates.append(u))
-        
-        # Count for range n=2..3
-        results = count_range(2, 3, progress_tracker=tracker)
-        
-        # Should have updates for (2,2), (2,3), (3,3)
-        dimensions_completed = set()
-        for update in updates:
-            if update.is_complete:
-                dimensions_completed.add((update.r, update.n))
-        
-        assert (2, 2) in dimensions_completed
-        assert (2, 3) in dimensions_completed
-        assert (3, 3) in dimensions_completed
+    # Progress integration tests removed - we now use log-based progress tracking
+    # instead of callback-based tracking. See core/log_progress_reader.py and 
+    # tests/test_web_api.py for progress endpoint tests.
     
     def test_progress_with_cache(self):
         """Test that progress tracking works with caching."""

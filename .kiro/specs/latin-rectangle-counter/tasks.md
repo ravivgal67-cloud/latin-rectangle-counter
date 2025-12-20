@@ -313,3 +313,41 @@
   - Test cache persistence across restarts
   - Test range calculations with partial cache
   - Test both calculation and presentation views
+
+- [x] 19. Tests cleanup and refactoring
+  - Consolidate duplicate test logic across test files
+  - Remove unused test files that don't align with current spec
+  - Standardize test patterns and naming conventions
+  - Optimize test performance and resource usage
+  - Improve test organization and maintainability
+  - _Requirements: All (test quality improvement)_
+
+- [x] 19.1 Audit and remove unused test files
+  - Identify test files that don't correspond to current spec modules
+  - Remove obsolete test files (e.g., test_auto_counter_extended.py, test_bitset_optimization.py)
+  - Clean up test files that test deprecated functionality
+  - _Requirements: All_
+
+- [x] 19.2 Consolidate duplicate test logic
+  - Move cache flag accuracy tests from test_counter.py to test_cache.py
+  - Eliminate redundant test patterns across files
+  - Create shared test utilities for common patterns
+  - _Requirements: All_
+
+- [x] 19.3 Standardize test file organization
+  - Ensure consistent property-based test documentation format
+  - Standardize temporary database handling patterns
+  - Unify test class naming conventions
+  - _Requirements: All_
+
+- [x] 19.4 Optimize test performance
+  - Reduce test execution time by optimizing hypothesis settings
+  - Improve temporary file cleanup patterns
+  - Optimize database operations in tests
+  - _Requirements: All_
+
+- [x] 19.5 Improve test maintainability
+  - Add missing docstrings and improve test documentation
+  - Ensure all property tests reference correct requirement numbers
+  - Standardize assertion messages and error reporting
+  - _Requirements: All_

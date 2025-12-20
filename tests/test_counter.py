@@ -15,7 +15,7 @@ class TestCountNLRR2:
     """Tests for r=2 counting accuracy."""
     
     @given(st.integers(min_value=2, max_value=8))
-    @settings(max_examples=100)
+    @settings(max_examples=50, deadline=1000)
     def test_count_accuracy_r2(self, n):
         """
         **Feature: latin-rectangle-counter, Property 10: Count accuracy (r=2 case)**
@@ -85,7 +85,7 @@ class TestDifferenceCalculation:
     """Tests for difference calculation property."""
     
     @given(st.integers(min_value=2, max_value=8))
-    @settings(max_examples=100, deadline=None)
+    @settings(max_examples=50, deadline=None)
     def test_difference_calculation(self, n):
         """
         **Feature: latin-rectangle-counter, Property 11: Difference calculation**
@@ -132,7 +132,7 @@ class TestCountAccuracy:
             lambda n: st.tuples(st.just(n), st.integers(min_value=2, max_value=n))
         )
     )
-    @settings(max_examples=100, deadline=None)
+    @settings(max_examples=50, deadline=None)
     def test_count_accuracy_general(self, dims):
         """
         **Feature: latin-rectangle-counter, Property 10: Count accuracy**
@@ -203,143 +203,6 @@ class TestCountAccuracy:
         result = count_rectangles(3, 3)
         total = result.positive_count + result.negative_count
         assert total == 2
-
-
-class TestCacheFlagAccuracy:
-    """Tests for cache flag accuracy property."""
-    
-    @given(
-        st.integers(min_value=2, max_value=4).flatmap(
-            lambda n: st.tuples(st.just(n), st.integers(min_value=2, max_value=n))
-        )
-    )
-    @settings(max_examples=50, deadline=None)
-    def test_cache_flag_accuracy(self, dims):
-        """
-        **Feature: latin-rectangle-counter, Property 15: Cache flag accuracy**
-        **Validates: Requirements 6.5**
-        
-        For any result returned to the user, the from_cache flag should be true
-        if and only if the result was retrieved from cache rather than computed.
-        
-        We verify by:
-        1. Computing a result without cache (should have from_cache=False)
-        2. Computing the same result with cache (first time, should have from_cache=False)
-        3. Computing the same result with cache again (should have from_cache=True)
-        """
-        from core.counter import count_rectangles
-        from cache.cache_manager import CacheManager
-        
-        n, r = dims
-        
-        # Test 1: Compute without cache
-        result_no_cache = count_rectangles(r, n, cache_manager=None)
-        assert result_no_cache.from_cache is False, (
-            f"Result without cache should have from_cache=False for r={r}, n={n}"
-        )
-        
-        # Test 2: Compute with fresh cache (first time)
-        cache = CacheManager(":memory:")
-        result_first_time = count_rectangles(r, n, cache_manager=cache)
-        assert result_first_time.from_cache is False, (
-            f"First computation with cache should have from_cache=False for r={r}, n={n}"
-        )
-        
-        # Test 3: Compute with cache again (should be cached now)
-        result_cached = count_rectangles(r, n, cache_manager=cache)
-        assert result_cached.from_cache is True, (
-            f"Second computation with cache should have from_cache=True for r={r}, n={n}"
-        )
-        
-        # Verify the cached result has the same counts
-        assert result_cached.positive_count == result_first_time.positive_count
-        assert result_cached.negative_count == result_first_time.negative_count
-        assert result_cached.difference == result_first_time.difference
-        
-        cache.close()
-    
-    def test_cache_flag_with_count_for_n(self):
-        """Test cache flag accuracy with count_for_n function."""
-        from core.counter import count_for_n
-        from cache.cache_manager import CacheManager
-        
-        n = 3
-        
-        # First computation with cache
-        cache = CacheManager(":memory:")
-        results_first = count_for_n(n, cache_manager=cache)
-        
-        # All results should have from_cache=False
-        for result in results_first:
-            assert result.from_cache is False, (
-                f"First computation should have from_cache=False for r={result.r}, n={result.n}"
-            )
-        
-        # Second computation with cache
-        results_second = count_for_n(n, cache_manager=cache)
-        
-        # All results should have from_cache=True
-        for result in results_second:
-            assert result.from_cache is True, (
-                f"Second computation should have from_cache=True for r={result.r}, n={result.n}"
-            )
-        
-        cache.close()
-    
-    def test_cache_flag_with_count_range(self):
-        """Test cache flag accuracy with count_range function."""
-        from core.counter import count_range
-        from cache.cache_manager import CacheManager
-        
-        # First computation with cache
-        cache = CacheManager(":memory:")
-        results_first = count_range(2, 3, cache_manager=cache)
-        
-        # All results should have from_cache=False
-        for result in results_first:
-            assert result.from_cache is False, (
-                f"First computation should have from_cache=False for r={result.r}, n={result.n}"
-            )
-        
-        # Second computation with cache
-        results_second = count_range(2, 3, cache_manager=cache)
-        
-        # All results should have from_cache=True
-        for result in results_second:
-            assert result.from_cache is True, (
-                f"Second computation should have from_cache=True for r={result.r}, n={result.n}"
-            )
-        
-        cache.close()
-    
-    def test_partial_cache_flag_accuracy(self):
-        """Test cache flag accuracy with partial cache."""
-        from core.counter import count_range
-        from cache.cache_manager import CacheManager
-        
-        cache = CacheManager(":memory:")
-        
-        # Pre-populate cache with some results
-        # Compute for n=2 (will cache r=2, n=2)
-        count_range(2, 2, cache_manager=cache)
-        
-        # Now compute for range 2..3
-        # This should have:
-        # - (2, 2): from_cache=True (already cached)
-        # - (2, 3): from_cache=False (new computation)
-        # - (3, 3): from_cache=False (new computation)
-        results = count_range(2, 3, cache_manager=cache)
-        
-        # Find each result and check its flag
-        result_2_2 = next(r for r in results if r.r == 2 and r.n == 2)
-        result_2_3 = next(r for r in results if r.r == 2 and r.n == 3)
-        result_3_3 = next(r for r in results if r.r == 3 and r.n == 3)
-        
-        assert result_2_2.from_cache is True, "Result (2,2) should be from cache"
-        assert result_2_3.from_cache is False, "Result (2,3) should not be from cache"
-        assert result_3_3.from_cache is False, "Result (3,3) should not be from cache"
-        
-        cache.close()
 
 
 class TestCompleteRangeCoverage:

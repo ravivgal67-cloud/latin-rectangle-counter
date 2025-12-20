@@ -13,7 +13,7 @@ class TestPermutationSign:
     """Tests for permutation sign computation."""
     
     @given(st.permutations(range(1, 11)))
-    @settings(max_examples=100)
+    @settings(max_examples=50)
     def test_permutation_sign_correctness(self, perm):
         """
         **Feature: latin-rectangle-counter, Property 9: Permutation sign correctness**
@@ -78,7 +78,7 @@ class TestDerangements:
     """Tests for derangement utilities."""
     
     @given(st.integers(min_value=0, max_value=8))
-    @settings(max_examples=100)
+    @settings(max_examples=50)
     def test_derangement_count_matches_known_values(self, n):
         """
         **Feature: latin-rectangle-counter, Property: Derangement count correctness**

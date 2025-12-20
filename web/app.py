@@ -16,6 +16,8 @@ from core.validation import parse_input, validate_dimensions, DimensionType, Val
 from core.formatting import format_for_web
 from cache.cache_manager import CacheManager
 from core.progress import ProgressTracker
+from core.auto_counter import count_rectangles_auto, get_recommended_processes
+from core.logging_config import get_logger
 
 
 def create_app(cache_manager: CacheManager = None) -> Flask:
@@ -37,6 +39,10 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
     
     # Configure CORS for frontend
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+    
+    # Initialize logging system for computations
+    computation_logger = get_logger("web_session")
+    app.logger.info("🚀 Initialized computation logging system")
     
     # Suppress logging for progress endpoint
     import logging
@@ -162,11 +168,20 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
             n = data.get('n')
             n_start = data.get('n_start')
             n_end = data.get('n_end')
+            num_processes = data.get('num_processes', 'auto')
+            
+            # Parse num_processes
+            if num_processes == 'auto' or num_processes is None:
+                num_processes_int = None  # Let auto_counter decide
+            else:
+                try:
+                    num_processes_int = int(num_processes)
+                except (ValueError, TypeError):
+                    num_processes_int = None
             
             cache_manager = app.config['CACHE_MANAGER']
             
-            # Clear old progress and set up progress tracking
-            cache_manager.clear_progress()
+            # Set up progress tracking (now handled by log files)
             from core.progress import ProgressTracker
             progress_tracker = ProgressTracker(cache_manager)
             
@@ -180,7 +195,32 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
                         "error": validation.error_message
                     }), 400
                 
-                result = count_rectangles(r, n, cache_manager, progress_tracker, enable_progress_db=True)
+                # Use auto_counter for intelligent parallel/single selection
+                # Check cache first
+                cached_result = cache_manager.get(r, n)
+                if cached_result:
+                    result = cached_result
+                else:
+                    # Initialize logging for this computation
+                    computation_logger = get_logger(f"web_computation_{r}_{n}")
+                    computation_logger.info(f"🚀 Starting computation for ({r},{n}) with {num_processes_int or 'auto'} processes")
+                    
+                    # Determine force flags based on num_processes
+                    force_single = (num_processes_int == 1)
+                    force_parallel = (num_processes_int is not None and num_processes_int > 1)
+                    
+                    result = count_rectangles_auto(
+                        r, n,
+                        num_processes=num_processes_int,
+                        force_single=force_single,
+                        force_parallel=force_parallel
+                    )
+                    
+                    computation_logger.info(f"✅ Completed computation for ({r},{n}): {result.positive_count + result.negative_count:,} rectangles")
+                    
+                    # Cache the result
+                    cache_manager.put(result)
+                
                 results = [result]
                 
             elif n is not None and r is None:
@@ -192,7 +232,13 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
                         "error": validation.error_message
                     }), 400
                 
+                # Initialize logging for this computation
+                computation_logger = get_logger(f"web_computation_all_for_{n}")
+                computation_logger.info(f"🚀 Starting computation for all r with n={n}")
+                
                 results = count_for_n(n, cache_manager, progress_tracker, enable_progress_db=True)
+                
+                computation_logger.info(f"✅ Completed computation for all r with n={n}: {len(results)} results")
                 
             elif n_start is not None and n_end is not None:
                 # Range mode
@@ -203,7 +249,13 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
                         "error": validation.error_message
                     }), 400
                 
+                # Initialize logging for this computation
+                computation_logger = get_logger(f"web_computation_range_{n_start}_{n_end}")
+                computation_logger.info(f"🚀 Starting computation for range n={n_start} to {n_end}")
+                
                 results = count_range(n_start, n_end, cache_manager, progress_tracker, enable_progress_db=True)
+                
+                computation_logger.info(f"✅ Completed computation for range n={n_start} to {n_end}: {len(results)} results")
                 
             else:
                 return jsonify({
@@ -259,18 +311,21 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
     @app.route('/api/progress', methods=['GET'])
     def api_progress():
         """
-        Get current progress for ongoing computations.
+        Get current progress for ongoing computations by reading log files.
         
         Returns:
-            JSON with list of progress entries
+            JSON with list of progress entries from log files
         """
         try:
-            cache_manager = app.config['CACHE_MANAGER']
-            progress_data = cache_manager.get_all_progress()
+            from core.log_progress_reader import get_progress_from_logs, is_computation_active
+            
+            progress_data = get_progress_from_logs()
+            active = is_computation_active()
             
             return jsonify({
                 'status': 'success',
-                'progress': progress_data
+                'progress': progress_data,
+                'has_active_computations': active
             }), 200
         except Exception as e:
             app.logger.error(f"Error in /api/progress: {e}")
@@ -383,6 +438,80 @@ def create_app(cache_manager: CacheManager = None) -> Flask:
             # Return error as SSE event
             error_event = f"data: {json.dumps({'status': 'error', 'error': str(e)})}\n\n"
             return Response(error_event, mimetype='text/event-stream'), 500
+    
+    @app.route('/api/recommend', methods=['POST'])
+    def api_recommend():
+        """
+        Get recommendation for computing specified dimensions.
+        
+        Request body (JSON):
+            - r (int): Number of rows
+            - n (int): Number of columns
+            
+        Returns:
+            JSON response with recommendation
+            
+        Example:
+            POST /api/recommend
+            {"r": 5, "n": 7}
+            
+            Response:
+            {
+                "status": "success",
+                "r": 5,
+                "n": 7,
+                "method": "parallel",
+                "processes": 8,
+                "estimated_time": "~5 minutes"
+            }
+        """
+        try:
+            data = request.get_json()
+            
+            if data is None:
+                return jsonify({
+                    "status": "error",
+                    "error": "Request body must be JSON"
+                }), 400
+            
+            r = data.get('r')
+            n = data.get('n')
+            
+            if r is None or n is None:
+                return jsonify({
+                    "status": "error",
+                    "error": "Must specify both r and n"
+                }), 400
+            
+            # Validate dimensions
+            validation = validate_dimensions(r=r, n=n)
+            if not validation.is_valid:
+                return jsonify({
+                    "status": "error",
+                    "error": validation.error_message
+                }), 400
+            
+            # Get recommendation
+            from core.auto_counter import estimate_computation_time
+            num_processes = get_recommended_processes(n)
+            estimated_time = estimate_computation_time(r, n, num_processes)
+            
+            return jsonify({
+                "status": "success",
+                "r": r,
+                "n": n,
+                "method": "parallel" if num_processes > 1 else "single",
+                "processes": num_processes,
+                "estimated_time": estimated_time
+            }), 200
+            
+        except Exception as e:
+            app.logger.error(f"Error in /api/recommend: {e}")
+            app.logger.error(traceback.format_exc())
+            return jsonify({
+                "status": "error",
+                "error": str(e)
+            }), 500
     
     @app.route('/api/cache/results', methods=['GET'])
     def api_cache_results():

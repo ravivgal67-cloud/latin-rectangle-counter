@@ -8,7 +8,7 @@ normalized Latin rectangles.
 from dataclasses import dataclass
 from typing import List, Optional
 from core.permutation import count_derangements, compute_determinant
-from core.latin_rectangle import generate_normalized_rectangles
+# Old generator import removed - using ultra-safe bitwise system
 
 
 @dataclass
@@ -95,161 +95,8 @@ def count_nlr_r2(n: int) -> CountResult:
     )
 
 
-def count_nlr_general(r: int, n: int, progress_tracker=None) -> CountResult:
-    """
-    Count positive and negative normalized Latin rectangles for r > 2.
-    
-    This function uses the generator to produce all normalized Latin rectangles
-    of dimension r×n, then classifies each by its sign and counts them.
-    
-    Args:
-        r: Number of rows (r > 2)
-        n: Number of columns (n >= r)
-        
-    Returns:
-        CountResult with positive and negative counts
-        
-    Examples:
-        >>> result = count_nlr_general(3, 3)
-        >>> result.positive_count + result.negative_count  # Total count
-        2
-    """
-    positive_count = 0
-    negative_count = 0
-    
-    # Notify progress tracker if provided
-    if progress_tracker:
-        progress_tracker.start_dimension(r, n)
-    
-    # Generate all normalized rectangles and classify by sign
-    for rectangle in generate_normalized_rectangles(r, n):
-        sign = rectangle.compute_sign()
-        if sign == 1:
-            positive_count += 1
-            if progress_tracker:
-                progress_tracker.update(positive_delta=1)
-        else:
-            negative_count += 1
-            if progress_tracker:
-                progress_tracker.update(negative_delta=1)
-    
-    difference = positive_count - negative_count
-    
-    # Mark dimension as complete
-    if progress_tracker:
-        progress_tracker.complete_dimension()
-    
-    return CountResult(
-        r=r,
-        n=n,
-        positive_count=positive_count,
-        negative_count=negative_count,
-        difference=difference,
-        from_cache=False
-    )
 
-
-def count_nlr_with_completion(r: int, n: int, progress_tracker=None) -> tuple[CountResult, CountResult]:
-    """
-    Count (r, n) and simultaneously compute (r+1, n) by completing each rectangle.
-    
-    This optimization works when r = n-1. Every (n-1)×n normalized Latin rectangle
-    can be uniquely completed to an n×n Latin square by adding the missing element
-    in each column as the last row.
-    
-    Args:
-        r: Number of rows (must equal n-1)
-        n: Number of columns
-        progress_tracker: Optional progress tracker
-        
-    Returns:
-        Tuple of (result_r, result_r_plus_1) where:
-        - result_r is the CountResult for (r, n)
-        - result_r_plus_1 is the CountResult for (r+1, n)
-        
-    Raises:
-        ValueError: If r != n-1
-    """
-    if r != n - 1:
-        raise ValueError(f"count_nlr_with_completion requires r = n-1, got r={r}, n={n}")
-    
-    # Counters for (r, n)
-    positive_r = 0
-    negative_r = 0
-    
-    # Counters for (r+1, n) = (n, n)
-    positive_r_plus_1 = 0
-    negative_r_plus_1 = 0
-    
-    # Notify progress tracker for (r, n) if provided
-    if progress_tracker:
-        progress_tracker.start_dimension(r, n)
-    
-    # Generate all (r, n) rectangles
-    for rectangle in generate_normalized_rectangles(r, n):
-        sign_r = rectangle.compute_sign()
-        
-        # Count for (r, n)
-        if sign_r == 1:
-            positive_r += 1
-        else:
-            negative_r += 1
-        
-        # Complete to (r+1, n) by finding missing element in each column
-        last_row = []
-        for col_idx in range(n):
-            # Find which element is missing in this column
-            column_values = {rectangle.data[row_idx][col_idx] for row_idx in range(r)}
-            missing = next(val for val in range(1, n + 1) if val not in column_values)
-            last_row.append(missing)
-        
-        # Compute sign of the completed (r+1, n) rectangle
-        # The sign changes based on the parity of the last row permutation
-        from core.permutation import permutation_sign
-        last_row_sign = permutation_sign(last_row)
-        sign_r_plus_1 = sign_r * last_row_sign
-        
-        # Count for (r+1, n)
-        if sign_r_plus_1 == 1:
-            positive_r_plus_1 += 1
-        else:
-            negative_r_plus_1 += 1
-        
-        # Update progress for the (r, n) computation
-        if progress_tracker:
-            progress_tracker.update(positive_delta=1 if sign_r == 1 else 0,
-                                   negative_delta=1 if sign_r == -1 else 0)
-    
-    # Mark (r, n) as complete
-    if progress_tracker:
-        progress_tracker.complete_dimension()
-    
-    # Now notify progress tracker for (r+1, n) - it's instantly complete since we already computed it
-    if progress_tracker:
-        progress_tracker.start_dimension(r + 1, n)
-        # Update with final counts
-        progress_tracker.update(positive_delta=positive_r_plus_1, negative_delta=negative_r_plus_1)
-        progress_tracker.complete_dimension()
-    
-    result_r = CountResult(
-        r=r,
-        n=n,
-        positive_count=positive_r,
-        negative_count=negative_r,
-        difference=positive_r - negative_r,
-        from_cache=False
-    )
-    
-    result_r_plus_1 = CountResult(
-        r=r + 1,
-        n=n,
-        positive_count=positive_r_plus_1,
-        negative_count=negative_r_plus_1,
-        difference=positive_r_plus_1 - negative_r_plus_1,
-        from_cache=False
-    )
-    
-    return result_r, result_r_plus_1
+# Old completion function removed - use ultra-safe bitwise system instead
 
 
 def count_rectangles(r: int, n: int, cache_manager: Optional['CacheManager'] = None, progress_tracker=None, enable_progress_db: bool = False) -> CountResult:
@@ -258,7 +105,7 @@ def count_rectangles(r: int, n: int, cache_manager: Optional['CacheManager'] = N
     
     This dispatcher function routes to the appropriate counting algorithm:
     - For r=2: Uses the efficient derangement-based formula (count_nlr_r2)
-    - For r>2: Uses the general backtracking algorithm (count_nlr_general)
+    - For r>2: Uses auto-selection (ultra-safe bitwise with parallel processing)
     
     If a cache_manager is provided, this function will:
     1. Check the cache for existing results
@@ -306,14 +153,19 @@ def count_rectangles(r: int, n: int, cache_manager: Optional['CacheManager'] = N
     # Start timing
     start_time = time.time()
     
-    # Compute the result
+    # Compute the result using auto-selection for optimal performance
     if r == 2:
         result = count_nlr_r2(n)
         # For r=2, we use a formula so complete immediately
         if progress_tracker:
             progress_tracker.complete_dimension()
     else:
-        result = count_nlr_general(r, n, progress_tracker)
+        # Use auto-selection for r > 2 (chooses between single/parallel ultra-safe bitwise)
+        from core.auto_counter import count_rectangles_auto
+        result = count_rectangles_auto(r, n)
+        # Mark progress as complete since auto_counter handles its own progress
+        if progress_tracker:
+            progress_tracker.complete_dimension()
     
     # Calculate computation time
     computation_time = time.time() - start_time
@@ -365,24 +217,73 @@ def count_for_n(n: int, cache_manager: Optional['CacheManager'] = None, progress
     n_minus_1_cached = cache_manager.get(n - 1, n) if cache_manager and n > 2 else None
     n_n_cached = cache_manager.get(n, n) if cache_manager else None
     
-    # Decide whether to use optimization
-    use_optimization = (n > 2 and 
-                       n_minus_1_cached is None and 
-                       n_n_cached is None)
+    # Use completion optimization when both (n-1, n) and (n, n) need to be computed
+    # Only enable if neither is cached and n >= 3 (so n-1 >= 2)
+    use_optimization = (n >= 3 and 
+                       (cache_manager is None or (n_minus_1_cached is None and n_n_cached is None)))
     
     # Compute r from 2 to n
     for r in range(2, n + 1):
         # Special case: use optimization for (n-1, n) when applicable
         if r == n - 1 and use_optimization:
             import time
-            # Compute both (n-1, n) and (n, n) together
+            from core.parallel_completion_optimization import count_rectangles_with_completion_parallel
+            # Compute both (n-1, n) and (n, n) together using parallel completion optimization
             start_time = time.time()
-            result_n_minus_1, result_n = count_nlr_with_completion(n - 1, n, progress_tracker)
+            (total_n_minus_1, pos_n_minus_1, neg_n_minus_1), (total_n, pos_n, neg_n) = \
+                count_rectangles_with_completion_parallel(n - 1, n)
             elapsed = time.time() - start_time
+            
+            # Create CountResult objects
+            result_n_minus_1 = CountResult(
+                r=n-1, n=n, 
+                positive_count=pos_n_minus_1, 
+                negative_count=neg_n_minus_1, 
+                difference=pos_n_minus_1 - neg_n_minus_1
+            )
+            result_n = CountResult(
+                r=n, n=n,
+                positive_count=pos_n,
+                negative_count=neg_n,
+                difference=pos_n - neg_n
+            )
             
             # Set computation time for both results (they were computed together)
             result_n_minus_1.computation_time = elapsed
             result_n.computation_time = elapsed
+            
+            # MATHEMATICAL VERIFICATION: Test our proven theorem and hypothesis
+            # 
+            # This verification implements two key mathematical results:
+            # 1. PROVEN THEOREM: NLR(n-1, n) = NLR(n, n) (bijection proof in docs/nlr_n_minus_1_n_equality_and_parity.md)
+            # 2. PARITY CONJECTURE: Sign distribution behavior depends on parity of n (computational evidence)
+            
+            # Theorem: NLR(n-1, n) = NLR(n, n) (total count equality)
+            total_n_minus_1 = result_n_minus_1.positive_count + result_n_minus_1.negative_count
+            total_n_n = result_n.positive_count + result_n.negative_count
+            assert total_n_minus_1 == total_n_n, \
+                f"THEOREM VIOLATION: NLR({n-1},{n}) = {total_n_minus_1} ≠ {total_n_n} = NLR({n},{n}). " \
+                f"This contradicts our proven bijection theorem!"
+            
+            # Parity Hypothesis: Sign distribution behavior depends on parity of n
+            if n % 2 == 1:  # Odd n
+                # Hypothesis: For odd n, positive and negative counts should be preserved
+                pos_equal = result_n_minus_1.positive_count == result_n.positive_count
+                neg_equal = result_n_minus_1.negative_count == result_n.negative_count
+                assert pos_equal and neg_equal, \
+                    f"PARITY HYPOTHESIS VIOLATION (odd n={n}): Expected equal pos/neg counts. " \
+                    f"NLR({n-1},{n}): pos={result_n_minus_1.positive_count}, neg={result_n_minus_1.negative_count}. " \
+                    f"NLR({n},{n}): pos={result_n.positive_count}, neg={result_n.negative_count}. " \
+                    f"This contradicts our parity conjecture for odd n!"
+            else:  # Even n
+                # Hypothesis: For even n, positive and negative counts should differ
+                pos_equal = result_n_minus_1.positive_count == result_n.positive_count
+                neg_equal = result_n_minus_1.negative_count == result_n.negative_count
+                assert not (pos_equal and neg_equal), \
+                    f"PARITY HYPOTHESIS VIOLATION (even n={n}): Expected different pos/neg counts. " \
+                    f"NLR({n-1},{n}): pos={result_n_minus_1.positive_count}, neg={result_n_minus_1.negative_count}. " \
+                    f"NLR({n},{n}): pos={result_n.positive_count}, neg={result_n.negative_count}. " \
+                    f"This contradicts our parity conjecture for even n!"
             
             # Store both in cache
             if cache_manager:
@@ -429,3 +330,25 @@ def count_range(n_start: int, n_end: int, cache_manager: Optional['CacheManager'
     for n in range(n_start, n_end + 1):
         results.extend(count_for_n(n, cache_manager, progress_tracker, enable_progress_db))
     return results
+
+
+def count_rectangles_resumable(r: int, n: int, cache_manager: Optional['CacheManager'] = None, 
+                              progress_tracker=None, checkpoint_interval: int = 10000) -> CountResult:
+    """
+    Count normalized Latin rectangles with checkpoint-based resumption.
+    
+    NOTE: This function now just calls the regular count_rectangles since our
+    ultra-safe bitwise system is so fast that checkpointing is no longer needed.
+    
+    Args:
+        r: Number of rows
+        n: Number of columns  
+        cache_manager: Optional cache manager
+        progress_tracker: Optional progress tracker
+        checkpoint_interval: Ignored (kept for compatibility)
+        
+    Returns:
+        CountResult with computation results
+    """
+    # Just use the regular fast counter - no need for checkpointing anymore
+    return count_rectangles(r, n, cache_manager, progress_tracker)

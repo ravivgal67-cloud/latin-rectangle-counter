@@ -109,16 +109,34 @@ class CacheManager:
             CREATE INDEX IF NOT EXISTS idx_n ON results(n)
         """)
         
-        # Create progress table for tracking ongoing computations
+        # Progress tracking is now handled by log files (see core/log_progress_reader.py)
+        
+        # Create checkpoints table for resumable computations
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS progress (
+            CREATE TABLE IF NOT EXISTS checkpoints (
                 r INTEGER NOT NULL,
                 n INTEGER NOT NULL,
-                rectangles_scanned INTEGER NOT NULL,
+                partial_rows TEXT NOT NULL,
                 positive_count INTEGER NOT NULL,
                 negative_count INTEGER NOT NULL,
-                is_complete INTEGER NOT NULL DEFAULT 0,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                rectangles_scanned INTEGER NOT NULL,
+                elapsed_time REAL NOT NULL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (r, n)
+            )
+        """)
+        
+        # Create counter_checkpoints table for counter-based resumable computations
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS counter_checkpoints (
+                r INTEGER NOT NULL,
+                n INTEGER NOT NULL,
+                counters TEXT NOT NULL,
+                positive_count INTEGER NOT NULL,
+                negative_count INTEGER NOT NULL,
+                rectangles_scanned INTEGER NOT NULL,
+                elapsed_time REAL NOT NULL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (r, n)
             )
         """)
@@ -267,66 +285,255 @@ class CacheManager:
         
         return results
     
-    def update_progress(self, r: int, n: int, rectangles_scanned: int, 
-                       positive_count: int, negative_count: int, is_complete: bool = False):
+    # Progress tracking methods removed - now handled by log files (see core/log_progress_reader.py)
+    
+    def save_checkpoint(self, r: int, n: int, partial_rows: List[List[int]], 
+                       positive_count: int, negative_count: int, 
+                       rectangles_scanned: int, elapsed_time: float):
         """
-        Update progress for a computation.
+        Save a computation checkpoint (legacy method for partial rows).
         
         Args:
             r: Number of rows
             n: Number of columns
-            rectangles_scanned: Number of rectangles scanned so far
+            partial_rows: List of completed rows so far
             positive_count: Count of positive rectangles found
             negative_count: Count of negative rectangles found
-            is_complete: Whether computation is complete
+            rectangles_scanned: Total rectangles scanned
+            elapsed_time: Time spent so far in seconds
         """
+        import json
+        
         conn = self._get_connection()
         cursor = conn.cursor()
         
+        partial_rows_json = json.dumps(partial_rows)
+        
         cursor.execute("""
-            INSERT OR REPLACE INTO progress 
-            (r, n, rectangles_scanned, positive_count, negative_count, is_complete, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        """, (r, n, rectangles_scanned, positive_count, negative_count, 1 if is_complete else 0))
+            INSERT OR REPLACE INTO checkpoints 
+            (r, n, partial_rows, positive_count, negative_count, 
+             rectangles_scanned, elapsed_time, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (r, n, partial_rows_json, positive_count, negative_count, 
+              rectangles_scanned, elapsed_time))
         
         conn.commit()
     
-    def get_all_progress(self):
+    def load_checkpoint(self, r: int, n: int) -> Optional[dict]:
         """
-        Get all current progress entries.
+        Load a computation checkpoint (legacy method for partial rows).
         
+        Args:
+            r: Number of rows
+            n: Number of columns
+            
         Returns:
-            List of dictionaries with progress information
+            Dictionary with checkpoint data or None if no checkpoint exists
+        """
+        import json
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT partial_rows, positive_count, negative_count, 
+                   rectangles_scanned, elapsed_time, created_at
+            FROM checkpoints
+            WHERE r = ? AND n = ?
+        """, (r, n))
+        
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        
+        return {
+            'partial_rows': json.loads(row['partial_rows']),
+            'positive_count': row['positive_count'],
+            'negative_count': row['negative_count'],
+            'rectangles_scanned': row['rectangles_scanned'],
+            'elapsed_time': row['elapsed_time'],
+            'created_at': row['created_at']
+        }
+    
+    def delete_checkpoint(self, r: int, n: int):
+        """
+        Delete a computation checkpoint (legacy method).
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
         """
         conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT r, n, rectangles_scanned, positive_count, negative_count, is_complete
-            FROM progress
-            ORDER BY n, r
+            DELETE FROM checkpoints WHERE r = ? AND n = ?
+        """, (r, n))
+        
+        conn.commit()
+    
+    def save_checkpoint_counters(self, r: int, n: int, counters: List[int], 
+                                positive_count: int, negative_count: int, 
+                                rectangles_scanned: int, elapsed_time: float):
+        """
+        Save a computation checkpoint using counter state.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            counters: List of counter values for each row level
+            positive_count: Count of positive rectangles found
+            negative_count: Count of negative rectangles found
+            rectangles_scanned: Total rectangles scanned
+            elapsed_time: Time spent so far in seconds
+        """
+        import json
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Create counter_checkpoints table if it doesn't exist
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS counter_checkpoints (
+                r INTEGER NOT NULL,
+                n INTEGER NOT NULL,
+                counters TEXT NOT NULL,
+                positive_count INTEGER NOT NULL,
+                negative_count INTEGER NOT NULL,
+                rectangles_scanned INTEGER NOT NULL,
+                elapsed_time REAL NOT NULL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (r, n)
+            )
         """)
         
-        results = []
-        for row in cursor.fetchall():
-            results.append({
-                'r': row['r'],
-                'n': row['n'],
-                'rectangles_scanned': row['rectangles_scanned'],
-                'positive_count': row['positive_count'],
-                'negative_count': row['negative_count'],
-                'is_complete': bool(row['is_complete'])
-            })
+        counters_json = json.dumps(counters)
         
-        return results
-    
-    def clear_progress(self):
-        """Clear all progress entries."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM progress")
+        cursor.execute("""
+            INSERT OR REPLACE INTO counter_checkpoints 
+            (r, n, counters, positive_count, negative_count, 
+             rectangles_scanned, elapsed_time, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (r, n, counters_json, positive_count, negative_count, 
+              rectangles_scanned, elapsed_time))
+        
         conn.commit()
     
+    def load_checkpoint_counters(self, r: int, n: int) -> Optional[dict]:
+        """
+        Load a computation checkpoint using counter state.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            
+        Returns:
+            Dictionary with checkpoint data or None if no checkpoint exists
+        """
+        import json
+        
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Check if counter_checkpoints table exists
+        cursor.execute("""
+            SELECT name FROM sqlite_master WHERE type='table' AND name='counter_checkpoints'
+        """)
+        
+        if cursor.fetchone() is None:
+            return None  # Table doesn't exist, no checkpoint
+        
+        cursor.execute("""
+            SELECT counters, positive_count, negative_count, 
+                   rectangles_scanned, elapsed_time, created_at
+            FROM counter_checkpoints
+            WHERE r = ? AND n = ?
+        """, (r, n))
+        
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        
+        return {
+            'counters': json.loads(row['counters']),
+            'positive_count': row['positive_count'],
+            'negative_count': row['negative_count'],
+            'rectangles_scanned': row['rectangles_scanned'],
+            'elapsed_time': row['elapsed_time'],
+            'created_at': row['created_at']
+        }
+    
+    def delete_checkpoint_counters(self, r: int, n: int):
+        """
+        Delete a computation checkpoint using counter state.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Check if table exists first
+        cursor.execute("""
+            SELECT name FROM sqlite_master WHERE type='table' AND name='counter_checkpoints'
+        """)
+        
+        if cursor.fetchone() is not None:
+            cursor.execute("""
+                DELETE FROM counter_checkpoints WHERE r = ? AND n = ?
+            """, (r, n))
+            
+            conn.commit()
+    
+    def checkpoint_counters_exists(self, r: int, n: int) -> bool:
+        """
+        Check if a counter-based checkpoint exists for the given dimensions.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            
+        Returns:
+            True if checkpoint exists, False otherwise
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Check if table exists first
+        cursor.execute("""
+            SELECT name FROM sqlite_master WHERE type='table' AND name='counter_checkpoints'
+        """)
+        
+        if cursor.fetchone() is None:
+            return False
+        
+        cursor.execute("""
+            SELECT 1 FROM counter_checkpoints WHERE r = ? AND n = ? LIMIT 1
+        """, (r, n))
+        
+        return cursor.fetchone() is not None
+    
+    def checkpoint_exists(self, r: int, n: int) -> bool:
+        """
+        Check if a checkpoint exists for the given dimensions.
+        
+        Args:
+            r: Number of rows
+            n: Number of columns
+            
+        Returns:
+            True if checkpoint exists, False otherwise
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 1 FROM checkpoints WHERE r = ? AND n = ? LIMIT 1
+        """, (r, n))
+        
+        return cursor.fetchone() is not None
+
     def close(self):
         """Close the database connection."""
         if self._connection is not None:

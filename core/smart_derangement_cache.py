@@ -81,8 +81,18 @@ class SmartDerangementCache:
             # Rebuild database indices for older cache files
             self._build_database_indices()
         
-        # Rebuild indices that aren't stored (to keep file size manageable)
-        self._build_multi_prefix_index()
+        # Load multi-prefix index if available, otherwise rebuild
+        if 'multi_prefix_index' in data:
+            # Convert string keys back to tuples
+            self.multi_prefix_index = {}
+            for key_str, indices in data['multi_prefix_index'].items():
+                prefix_tuple = tuple(map(int, key_str.split(',')))
+                self.multi_prefix_index[prefix_tuple] = indices
+            print(f"   Multi-prefix index: {len(self.multi_prefix_index)} entries (loaded from cache)")
+        else:
+            # Rebuild multi-prefix index for older cache files
+            self._build_multi_prefix_index()
+            print(f"   Multi-prefix index: {len(self.multi_prefix_index)} entries (rebuilt)")
         
         elapsed = time.time() - start_time
         print(f"✅ Loaded {len(self.derangements_with_signs):,} smart derangements in {elapsed:.3f}s")
@@ -96,11 +106,18 @@ class SmartDerangementCache:
             key_str = f"{pos},{val}"
             position_value_index_serializable[key_str] = list(indices)
         
+        # Convert multi_prefix_index to JSON-serializable format
+        multi_prefix_index_serializable = {}
+        for prefix_tuple, indices in self.multi_prefix_index.items():
+            key_str = ",".join(map(str, prefix_tuple))
+            multi_prefix_index_serializable[key_str] = indices
+        
         data = {
             'n': self.n,
             'derangements_with_signs': self.derangements_with_signs,
             'prefix_index': self.prefix_index,
             'position_value_index': position_value_index_serializable,
+            'multi_prefix_index': multi_prefix_index_serializable,
             'created_at': time.time()
         }
         

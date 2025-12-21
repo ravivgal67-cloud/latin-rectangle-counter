@@ -47,7 +47,8 @@ def count_rectangles_ultra_bitwise_partition(r: int, n: int,
     
     # Progress tracking
     last_progress_time = start_time
-    progress_interval = 30  # 30 seconds - better for web monitoring
+    progress_interval = 30  # 30 seconds for production - reasonable progress updates
+    inner_progress_counter = 0  # Track inner loop iterations
     processed_count = 0
     
     # Load smart derangements (cached, so fast)
@@ -84,19 +85,9 @@ def count_rectangles_ultra_bitwise_partition(r: int, n: int,
     for second_idx in second_row_indices:
         processed_count += 1
         
-        # Periodic progress updates (every 10 minutes)
-        current_time = time.time()
-        if current_time - last_progress_time >= progress_interval:
-            logger.update_process_progress(
-                process_id, 
-                processed_count,
-                {
-                    "rectangles_found": total_count,
-                    "positive_count": positive_count,
-                    "negative_count": negative_count
-                }
-            )
-            last_progress_time = current_time
+        # Log start of processing this second row
+        logger.info(f"🔄 Process {process_id}: Starting second row {processed_count}/{len(second_row_indices)} (index {second_idx})")
+        
         second_row, second_sign = derangements_with_signs[second_idx]
         
         if r == 2:
@@ -136,6 +127,30 @@ def count_rectangles_ultra_bitwise_partition(r: int, n: int,
         while stack:
             level, valid_mask, accumulated_sign = stack.pop()
             
+            # Inner loop progress reporting (every 1000 iterations for production)
+            inner_progress_counter += 1
+            if inner_progress_counter % 1000 == 0:
+                current_time = time.time()
+                if current_time - last_progress_time >= 30:  # Report every 30 seconds for inner loops
+                    logger.info(f"📊 Process {process_id}: Second row {processed_count}/{len(second_row_indices)}, "
+                               f"Inner iterations: {inner_progress_counter:,}, "
+                               f"Stack depth: {len(stack)}, Level: {level}, "
+                               f"Rectangles: {total_count:,}")
+                    logger.update_process_progress(
+                        process_id, 
+                        processed_count,
+                        {
+                            "rectangles_found": total_count,
+                            "positive_count": positive_count,
+                            "negative_count": negative_count,
+                            "inner_iterations": inner_progress_counter,
+                            "current_second_row": f"{processed_count}/{len(second_row_indices)}",
+                            "stack_depth": len(stack),
+                            "current_level": level
+                        }
+                    )
+                    last_progress_time = current_time
+            
             if level == r - 1:
                 # Last row - count all valid completions
                 last_mask = valid_mask
@@ -166,6 +181,20 @@ def count_rectangles_ultra_bitwise_partition(r: int, n: int,
                     if next_valid != 0:
                         new_accumulated_sign = accumulated_sign * current_sign
                         stack.append((level + 1, next_valid, new_accumulated_sign))
+        
+        # Update progress after completing this second row (outer loop progress)
+        current_time = time.time()
+        if current_time - last_progress_time >= progress_interval:
+            logger.update_process_progress(
+                process_id, 
+                processed_count,
+                {
+                    "rectangles_found": total_count,
+                    "positive_count": positive_count,
+                    "negative_count": negative_count
+                }
+            )
+            last_progress_time = current_time
     
     elapsed_time = time.time() - start_time
     

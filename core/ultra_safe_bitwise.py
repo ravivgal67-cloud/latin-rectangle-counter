@@ -29,7 +29,25 @@ def count_rectangles_ultra_safe_bitwise(r: int, n: int) -> Tuple[int, int, int]:
     if r > 10:
         raise NotImplementedError(f"Ultra-safe bitwise implementation only supports r <= 10, got r={r}")
     
-    # Get smart derangements with pre-computed signs
+    # Special case: r=2 uses efficient derangement formula (no cache needed)
+    if r == 2:
+        print(f"   ⚡ Using derangement formula for r=2 (no cache needed)")
+        from core.permutation import count_derangements
+        
+        # Compute total derangements
+        total_count = count_derangements(n)
+        
+        # Compute difference using closed-form formula
+        # diff = det(J_n - I_n) = (-1)^(n-1) * (n-1)
+        diff = ((-1) ** (n - 1)) * (n - 1)
+        
+        # Solve for positive and negative counts
+        positive_count = (total_count + diff) // 2
+        negative_count = (total_count - diff) // 2
+        
+        return total_count, positive_count, negative_count
+    
+    # For r >= 3, use smart derangement cache
     # Use get_smart_derangement_cache to avoid double-loading
     from core.smart_derangement_cache import get_smart_derangement_cache
     cache = get_smart_derangement_cache(n)
@@ -38,13 +56,6 @@ def count_rectangles_ultra_safe_bitwise(r: int, n: int) -> Tuple[int, int, int]:
     
     print(f"   🚀 Using smart derangement cache: {num_derangements:,} derangements")
     print(f"   🔢 Using bitwise operations for {num_derangements}-bit bitsets")
-    
-    if r == 2:
-        # For r=2, just count the signs directly
-        total_count = num_derangements
-        positive_count = sum(1 for _, sign in derangements_with_signs if sign > 0)
-        negative_count = total_count - positive_count
-        return total_count, positive_count, negative_count
     
     # Pre-compute conflict bitsets for faster operations
     position_value_index = cache.position_value_index

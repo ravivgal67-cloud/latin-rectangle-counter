@@ -2,6 +2,31 @@
 
 This directory contains utility scripts for development, testing, and monitoring.
 
+## Cache Management Scripts
+
+### `generate_cache.py`
+Generates optimized smart derangement cache files with pre-computed indices to eliminate initialization bottlenecks.
+
+**Usage:**
+```bash
+# Generate all caches (n=2 through n=8)
+python scripts/generate_cache.py
+
+# Generate cache for specific n
+python scripts/generate_cache.py --n 8
+
+# Force regeneration with verification and benchmarking
+python scripts/generate_cache.py --n 8 --force --verify --benchmark
+```
+
+**Options:**
+- `--n N`: Generate cache for specific n (default: 2-8)
+- `--force`: Force regeneration even if cache exists
+- `--verify`: Verify cache integrity after generation
+- `--benchmark`: Benchmark loading performance
+
+**Purpose:** Pre-compute and store database indices and multi-prefix indices to speed up parallel process initialization.
+
 ## Benchmarking Scripts
 
 ### `benchmark_optimization.py`

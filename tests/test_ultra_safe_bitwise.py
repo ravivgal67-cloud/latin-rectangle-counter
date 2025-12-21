@@ -7,7 +7,7 @@ Feature: latin-rectangle-counter
 import time
 from core.ultra_safe_bitwise import count_rectangles_ultra_safe_bitwise
 from core.counter import count_rectangles
-from core.smart_derangement_cache import get_smart_derangements_with_signs, SmartDerangementCache
+from core.smart_derangement_cache import get_smart_derangements_with_signs, get_smart_derangement_cache
 
 # Optional imports for full test suite
 try:
@@ -224,10 +224,10 @@ class TestSmartDerangementCache:
     
     def test_cache_consistency(self):
         """Test that cache provides consistent results."""
-        for n in [4, 5, 6]:
-            # Load cache multiple times
-            cache1 = SmartDerangementCache(n)
-            cache2 = SmartDerangementCache(n)
+        for n in [4, 5, 6, 7, 8]:
+            # Load cache multiple times using the factory function
+            cache1 = get_smart_derangement_cache(n)
+            cache2 = get_smart_derangement_cache(n)
             
             # Should have same number of derangements
             derang1 = get_smart_derangements_with_signs(n)
@@ -235,15 +235,21 @@ class TestSmartDerangementCache:
             
             assert len(derang1) == len(derang2), f"Inconsistent cache size for n={n}"
             
-            # Should have same derangements (order may vary)
-            set1 = {(tuple(d), s) for d, s in derang1}
-            set2 = {(tuple(d), s) for d, s in derang2}
+            # Should have same derangements (order may vary, handle numpy arrays)
+            def normalize_derangement(d, s):
+                # Convert numpy arrays to lists for comparison
+                if hasattr(d, 'tolist'):
+                    d = d.tolist()
+                return (tuple(d), s)
+            
+            set1 = {normalize_derangement(d, s) for d, s in derang1}
+            set2 = {normalize_derangement(d, s) for d, s in derang2}
             assert set1 == set2, f"Inconsistent cache content for n={n}"
     
     def test_database_indices(self):
         """Test database-style indices functionality."""
-        for n in [4, 5, 6]:
-            cache = SmartDerangementCache(n)
+        for n in [4, 5, 6, 7, 8]:
+            cache = get_smart_derangement_cache(n)
             
             # Should have position-value index
             assert hasattr(cache, 'position_value_index'), f"Missing position_value_index for n={n}"
@@ -256,8 +262,41 @@ class TestSmartDerangementCache:
                 assert len(indices) > 0, f"Empty indices for ({pos},{val}) n={n}"
                 
                 # All indices should be valid
+                derangements = cache.get_all_derangements_with_signs()
                 for idx in indices:
-                    assert 0 <= idx < len(cache.derangements_with_signs), f"Invalid index {idx} for n={n}"
+                    assert 0 <= idx < len(derangements), f"Invalid index {idx} for n={n}"
+    
+    def test_binary_cache_optimization(self):
+        """Test binary cache specific optimizations."""
+        for n in [7, 8]:  # Binary cache range
+            cache = get_smart_derangement_cache(n)
+            
+            # Should be binary cache for n>=7
+            cache_type = type(cache).__name__
+            assert cache_type == 'CompactDerangementCache', f"Expected binary cache for n={n}, got {cache_type}"
+            
+            # Should have bitwise optimization methods
+            assert hasattr(cache, 'get_bitwise_data'), f"Missing bitwise optimization for n={n}"
+            
+            # Test bitwise data
+            conflict_masks, all_valid_mask = cache.get_bitwise_data()
+            assert isinstance(conflict_masks, dict), f"Invalid conflict_masks type for n={n}"
+            assert isinstance(all_valid_mask, int), f"Invalid all_valid_mask type for n={n}"
+            assert len(conflict_masks) == n * n, f"Wrong conflict_masks size for n={n}"
+    
+    def test_cache_selection_logic(self):
+        """Test that correct cache type is selected based on n."""
+        # Small n should use JSON cache
+        for n in [3, 4, 5, 6]:
+            cache = get_smart_derangement_cache(n)
+            cache_type = type(cache).__name__
+            assert cache_type == 'SmartDerangementCache', f"Expected JSON cache for n={n}, got {cache_type}"
+        
+        # Medium n should use binary cache
+        for n in [7, 8]:  # Only test up to 8 to avoid long test times
+            cache = get_smart_derangement_cache(n)
+            cache_type = type(cache).__name__
+            assert cache_type == 'CompactDerangementCache', f"Expected binary cache for n={n}, got {cache_type}"
 
 
 class TestBitwiseOperations:
@@ -280,7 +319,7 @@ class TestBitwiseOperations:
         # This is tested indirectly through correctness tests,
         # but we can verify the cache has proper conflict structure
         n = 5
-        cache = SmartDerangementCache(n)
+        cache = get_smart_derangement_cache(n)
         
         # Should have conflicts for each position-value pair
         total_conflicts = sum(len(indices) for indices in cache.position_value_index.values())

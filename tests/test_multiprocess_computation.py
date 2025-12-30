@@ -14,7 +14,7 @@ import time
 import multiprocessing as mp
 from pathlib import Path
 
-from core.parallel_ultra_bitwise import count_rectangles_parallel_ultra_bitwise
+from core.parallel_ultra_bitwise import count_rectangles_parallel_first_column
 from core.ultra_safe_bitwise import count_rectangles_ultra_safe_bitwise
 from core.logging_config import close_logger
 from tests.test_base import TestBaseWithProductionLogs
@@ -35,7 +35,7 @@ class TestMultiprocessComputation(TestBaseWithProductionLogs):
         # Test with 2 processes
         num_processes = 2
         test_name = "test_fast_case_5_6_correctness"
-        result = count_rectangles_parallel_ultra_bitwise(r, n, num_processes=num_processes, 
+        result = count_rectangles_parallel_first_column(r, n, num_processes=num_processes, 
                                                        logger_session=f"{test_name}_parallel_{r}_{n}")
         
         # Verify correctness (primary requirement)
@@ -76,7 +76,7 @@ class TestMultiprocessComputation(TestBaseWithProductionLogs):
         test_name = "test_fast_case_5_6_scaling"
         
         for num_proc in process_counts:
-            result = count_rectangles_parallel_ultra_bitwise(r, n, num_processes=num_proc,
+            result = count_rectangles_parallel_first_column(r, n, num_processes=num_proc,
                                                            logger_session=f"{test_name}_proc{num_proc}_parallel_{r}_{n}")
             total_parallel = result.positive_count + result.negative_count
             
@@ -116,7 +116,7 @@ class TestMultiprocessComputation(TestBaseWithProductionLogs):
         
         # Test with 8 processes
         test_name = "test_production_case_3_7_with_8_processes"
-        result = count_rectangles_parallel_ultra_bitwise(r, n, num_processes=num_processes,
+        result = count_rectangles_parallel_first_column(r, n, num_processes=num_processes,
                                                        logger_session=f"{test_name}_parallel_{r}_{n}")
         
         # Verify correctness
@@ -148,7 +148,7 @@ class TestMultiprocessComputation(TestBaseWithProductionLogs):
         r, n = 5, 6
         
         # Test with None (auto-detect)
-        result = count_rectangles_parallel_ultra_bitwise(r, n, num_processes=None)
+        result = count_rectangles_parallel_first_column(r, n, num_processes=None)
         
         # Should complete successfully
         total = result.positive_count + result.negative_count
@@ -171,7 +171,7 @@ class TestMultiprocessComputation(TestBaseWithProductionLogs):
         total_ref, pos_ref, neg_ref = count_rectangles_ultra_safe_bitwise(r, n)
         
         # Test with 1 process (should work like single-threaded)
-        result = count_rectangles_parallel_ultra_bitwise(r, n, num_processes=1)
+        result = count_rectangles_parallel_first_column(r, n, num_processes=1)
         
         total_parallel = result.positive_count + result.negative_count
         
@@ -188,17 +188,17 @@ class TestMultiprocessComputation(TestBaseWithProductionLogs):
     def test_error_handling(self):
         """Test error handling with invalid inputs."""
         
-        # Test with invalid process count (should raise ZeroDivisionError or ValueError)
-        with pytest.raises((ZeroDivisionError, ValueError, TypeError)):
-            count_rectangles_parallel_ultra_bitwise(5, 6, num_processes=0)
+        # Test with invalid process count (should raise ValueError)
+        with pytest.raises(ValueError):
+            count_rectangles_parallel_first_column(5, 6, num_processes=0)
         
-        with pytest.raises((ValueError, TypeError, ZeroDivisionError)):
-            count_rectangles_parallel_ultra_bitwise(5, 6, num_processes=-1)
+        with pytest.raises(ValueError):
+            count_rectangles_parallel_first_column(5, 6, num_processes=-1)
         
         # Test edge cases - just verify the function handles reasonable inputs
-        # Test with very small valid problem that should return 0 rectangles
-        result = count_rectangles_parallel_ultra_bitwise(1, 2, num_processes=2)
-        assert result.positive_count + result.negative_count == 0
+        # Test with small valid problem (2,2) that returns 1 rectangle
+        result = count_rectangles_parallel_first_column(2, 2, num_processes=2)
+        assert result.positive_count + result.negative_count == 1
         
         print("✅ Error handling tests passed")
         
@@ -238,7 +238,7 @@ class TestMultiprocessPerformance:
         performance_data = []
         
         for num_proc in process_counts:
-            result = count_rectangles_parallel_ultra_bitwise(r, n, num_processes=num_proc)
+            result = count_rectangles_parallel_first_column(r, n, num_processes=num_proc)
             
             # Verify correctness
             total = result.positive_count + result.negative_count
@@ -280,7 +280,7 @@ class TestMultiprocessPerformance:
         mem_before = process.memory_info().rss / 1024 / 1024  # MB
         
         # Run computation
-        result = count_rectangles_parallel_ultra_bitwise(r, n, num_processes=4)
+        result = count_rectangles_parallel_first_column(r, n, num_processes=4)
         
         # Get memory after
         mem_after = process.memory_info().rss / 1024 / 1024  # MB

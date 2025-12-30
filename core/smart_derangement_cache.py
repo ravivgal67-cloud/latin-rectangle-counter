@@ -384,21 +384,22 @@ def get_smart_derangement_cache(n: int):
     if not _BINARY_CACHE_AVAILABLE:
         # Fallback to JSON cache if binary cache not available
         if n not in _smart_caches:
+            print(f"📄 Using JSON cache for n={n} (binary cache not available)")
             _smart_caches[n] = SmartDerangementCache(n)
         return _smart_caches[n]
     
     # Smart selection based on problem size and cache availability
     if 7 <= n <= 10:
         # Use binary cache for optimal performance and memory efficiency
-        print(f"📦 Using binary cache for n={n} (optimal performance + memory)")
         if n not in _compact_caches:
+            print(f"📦 Using binary cache for n={n} (optimal performance + memory)")
             _compact_caches[n] = CompactDerangementCache(n)
         return _compact_caches[n]
     else:
         # Use JSON cache for n<7 (less overhead) or n>10 (not pre-built)
-        cache_reason = "less overhead" if n < 7 else "binary cache not pre-built"
-        print(f"📄 Using JSON cache for n={n} ({cache_reason})")
         if n not in _smart_caches:
+            cache_reason = "less overhead" if n < 7 else "binary cache not pre-built"
+            print(f"📄 Using JSON cache for n={n} ({cache_reason})")
             _smart_caches[n] = SmartDerangementCache(n)
         return _smart_caches[n]
 

@@ -13,7 +13,7 @@ import pytest
 from pathlib import Path
 
 from core.ultra_safe_bitwise import count_rectangles_ultra_safe_bitwise
-from core.parallel_completion_optimization import count_rectangles_completion_partition
+from core.parallel_ultra_bitwise import count_rectangles_parallel_first_column_with_completion
 from core.logging_config import close_logger
 from tests.test_base import TestBaseWithProductionLogs
 
@@ -40,22 +40,25 @@ class TestCompletionOptimization(TestBaseWithProductionLogs):
             expected_r = known_values[(r, n)]
             expected_r1 = known_values[(r+1, n)]
             
-            # Get all derangement indices for direct partition call
-            from core.smart_derangement_cache import get_smart_derangement_cache
-            cache = get_smart_derangement_cache(n)
-            derangements_with_signs = cache.get_all_derangements_with_signs()
-            all_indices = list(range(len(derangements_with_signs)))
+            # Call completion optimization using the new integrated function
+            result_r, result_r1 = count_rectangles_parallel_first_column_with_completion(
+                r, n, num_processes=1, logger_session=f"test_completion_{r}_{n}"
+            )
             
-            # Call completion partition directly (no parallel overhead)
-            # Note: This still uses production logs since the partition function doesn't accept log_dir
-            total_r_tog, pos_r_tog, neg_r_tog, total_r1_tog, pos_r1_tog, neg_r1_tog, elapsed = \
-                count_rectangles_completion_partition(r, n, all_indices, 0, f"test_completion_{r}_{n}")
+            # Extract values from CountResult objects
+            total_r_tog = result_r.positive_count + result_r.negative_count
+            pos_r_tog = result_r.positive_count
+            neg_r_tog = result_r.negative_count
+            
+            total_r1_tog = result_r1.positive_count + result_r1.negative_count
+            pos_r1_tog = result_r1.positive_count
+            neg_r1_tog = result_r1.negative_count
             
             # Verify correctness against known values
             assert (total_r_tog, pos_r_tog, neg_r_tog) == expected_r, f"({r},{n}) mismatch: got {(total_r_tog, pos_r_tog, neg_r_tog)}, expected {expected_r}"
             assert (total_r1_tog, pos_r1_tog, neg_r1_tog) == expected_r1, f"({r+1},{n}) mismatch: got {(total_r1_tog, pos_r1_tog, neg_r1_tog)}, expected {expected_r1}"
             
-            print(f"✅ ({r},{n}) + ({r+1},{n}): Correctness verified in {elapsed:.3f}s")
+            print(f"✅ ({r},{n}) + ({r+1},{n}): Correctness verified")
 
     
     def test_completion_parallel_multiprocess(self):  # pragma: no cover
@@ -64,8 +67,6 @@ class TestCompletionOptimization(TestBaseWithProductionLogs):
         This validates the multiprocess completion optimization works correctly
         and prepares us for production (6,7) runs with multiple processes.
         """
-        from core.parallel_completion_optimization import count_rectangles_with_completion_parallel
-        
         r, n = 5, 6
         num_processes = 4
         
@@ -76,8 +77,18 @@ class TestCompletionOptimization(TestBaseWithProductionLogs):
         expected_6_6 = (1128960, 426240, 702720)
         
         # Compute with parallel completion optimization
-        (total_r_par, pos_r_par, neg_r_par), (total_r1_par, pos_r1_par, neg_r1_par) = \
-            count_rectangles_with_completion_parallel(r, n, num_processes=num_processes)
+        result_r, result_r1 = count_rectangles_parallel_first_column_with_completion(
+            r, n, num_processes=num_processes, logger_session=f"test_parallel_completion_{r}_{n}"
+        )
+        
+        # Extract values from CountResult objects
+        total_r_par = result_r.positive_count + result_r.negative_count
+        pos_r_par = result_r.positive_count
+        neg_r_par = result_r.negative_count
+        
+        total_r1_par = result_r1.positive_count + result_r1.negative_count
+        pos_r1_par = result_r1.positive_count
+        neg_r1_par = result_r1.negative_count
         
         # Verify correctness against known values
         actual_5_6 = (total_r_par, pos_r_par, neg_r_par)
@@ -95,16 +106,14 @@ class TestCompletionOptimization(TestBaseWithProductionLogs):
     def test_completion_invalid_input(self):
         """Test that completion optimization rejects invalid inputs."""
         
-        from core.parallel_completion_optimization import count_rectangles_with_completion_parallel
-        
         # Test with invalid r != n-1 cases
         with pytest.raises(ValueError, match="requires r = n-1"):
             # This should fail because r != n-1
-            count_rectangles_with_completion_parallel(3, 6, num_processes=1)
+            count_rectangles_parallel_first_column_with_completion(3, 6, num_processes=1)
         
         with pytest.raises(ValueError, match="requires r = n-1"):
             # This should fail because r != n-1  
-            count_rectangles_with_completion_parallel(2, 5, num_processes=1)
+            count_rectangles_parallel_first_column_with_completion(2, 5, num_processes=1)
         
         print("✅ Invalid input handling verified")
 

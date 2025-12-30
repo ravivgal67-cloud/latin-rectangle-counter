@@ -217,6 +217,7 @@ Complete results for all computed normalized Latin rectangle dimensions:
 | **(2,8)** | 7,413 | 7,420 | **Δ −7** | **n=8 achievement** |
 | **(3,8)** | 35,133,504 | 35,165,760 | **Δ −32,256** | **n=8 achievement** |
 | **(4,8)** | 44,196,405,120 | 44,194,590,720 | **Δ +1,814,400** | **n=8 achievement** |
+| **(5,8)** | 11,426,982,174,720 | 11,426,610,585,600 | **Δ +371,589,120** | **n=8 achievement** |
 
 **Key Observations**:
 - **(3,4)** is the only known case where positive = negative (both 12)

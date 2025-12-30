@@ -312,8 +312,7 @@
   - Test complete workflow: input → compute → cache → display
   - Test cache persistence across restarts
   - Test range calculations with partial cache
-  - Test both calculation and presentation views
-
+  - Test both calculation and presentation vie
 - [x] 19. Tests cleanup and refactoring
   - Consolidate duplicate test logic across test files
   - Remove unused test files that don't align with current spec

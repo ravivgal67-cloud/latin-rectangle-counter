@@ -17,7 +17,7 @@ import json
 from pathlib import Path
 import multiprocessing as mp
 
-from core.parallel_ultra_bitwise import count_rectangles_parallel_ultra_bitwise
+from core.parallel_ultra_bitwise import count_rectangles_parallel_first_column
 from core.logging_config import ProgressLogger, close_logger
 
 
@@ -59,7 +59,7 @@ class TestMultiprocessLogging:
         num_processes = 8
         
         # Run computation with logging
-        result = count_rectangles_parallel_ultra_bitwise(
+        result = count_rectangles_parallel_first_column(
             r, n, 
             num_processes=num_processes
         )
@@ -122,7 +122,7 @@ class TestMultiprocessLogging:
         num_processes = 4  # Use fewer processes for faster test
         
         # Run computation
-        result = count_rectangles_parallel_ultra_bitwise(
+        result = count_rectangles_parallel_first_column(
             r, n,
             num_processes=num_processes,
             
@@ -154,7 +154,7 @@ class TestMultiprocessLogging:
         num_processes = 4
         
         # Run computation
-        result = count_rectangles_parallel_ultra_bitwise(
+        result = count_rectangles_parallel_first_column(
             r, n,
             num_processes=num_processes,
             
@@ -184,7 +184,7 @@ class TestMultiprocessLogging:
         num_processes = 4
         
         # Run computation
-        result = count_rectangles_parallel_ultra_bitwise(
+        result = count_rectangles_parallel_first_column(
             r, n,
             num_processes=num_processes,
             
@@ -236,7 +236,7 @@ class TestMultiprocessLogging:
         num_processes = 8  # Use all 8 processes to stress test
         
         # Run computation
-        result = count_rectangles_parallel_ultra_bitwise(
+        result = count_rectangles_parallel_first_column(
             r, n,
             num_processes=num_processes,
             
@@ -271,7 +271,7 @@ class TestMultiprocessLogging:
         num_processes = 4
         
         # Run computation
-        result = count_rectangles_parallel_ultra_bitwise(
+        result = count_rectangles_parallel_first_column(
             r, n,
             num_processes=num_processes,
             
@@ -333,7 +333,7 @@ class TestMultiprocessLoggingEdgeCases:
         """Test logging with num_processes=1 (edge case)."""
         r, n = 3, 7
         
-        result = count_rectangles_parallel_ultra_bitwise(
+        result = count_rectangles_parallel_first_column(
             r, n,
             num_processes=1,
             
@@ -355,7 +355,7 @@ class TestMultiprocessLoggingEdgeCases:
         r, n = 3, 7
         
         # Don't specify num_processes - let it auto-detect
-        result = count_rectangles_parallel_ultra_bitwise(
+        result = count_rectangles_parallel_first_column(
             r, n,
             num_processes=None,  # Auto-detect
             

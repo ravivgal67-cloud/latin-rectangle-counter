@@ -9,7 +9,7 @@ import multiprocessing as mp
 from typing import Tuple, Optional
 
 from core.ultra_safe_bitwise import count_rectangles_ultra_safe_bitwise
-from core.parallel_ultra_bitwise import count_rectangles_parallel_ultra_bitwise
+from core.parallel_ultra_bitwise import count_rectangles_parallel_first_column
 from core.counter import CountResult
 
 
@@ -65,7 +65,7 @@ def count_rectangles_auto(r: int, n: int,
         print(f"🚀 Auto-selected: Parallel ultra-safe bitwise ({reason})")
         print(f"   Using {num_processes} processes")
         
-        return count_rectangles_parallel_ultra_bitwise(r, n, num_processes)
+        return count_rectangles_parallel_first_column(r, n, num_processes)
     else:
         # Use single-threaded ultra-safe bitwise
         print(f"⚡ Auto-selected: Single-threaded ultra-safe bitwise ({reason})")
